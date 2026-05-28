@@ -6,88 +6,37 @@
     <title>Aplikasi Chat WA</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
-        
         body { background-color: #efeae2; display: flex; justify-content: center; height: 100vh; height: 100dvh; overflow: hidden; }
-        
-        #chat-container {
-            display: flex; width: 100%; max-width: 1000px; height: 100vh; height: 100dvh;
-            background: #efeae2; box-shadow: 0 2px 5px rgba(0,0,0,0.1); position: relative; overflow: hidden;
-        }
-
-        /* --- SISI KENCA: SIDEBAR KONTAK --- */
-        #sidebar {
-            width: 30%; min-width: 280px; background: white; border-right: 1px solid #ddd;
-            display: flex; flex-direction: column; height: 100%; z-index: 5;
-        }
-        
-        .sidebar-header { 
-            background: #008069; color: white; padding: 15px; z-index: 10;
-            padding-top: calc(15px + env(safe-area-inset-top));
-        }
+        #chat-container { display: flex; width: 100%; max-width: 1000px; height: 100vh; height: 100dvh; background: #efeae2; box-shadow: 0 2px 5px rgba(0,0,0,0.1); position: relative; overflow: hidden; }
+        #sidebar { width: 30%; min-width: 280px; background: white; border-right: 1px solid #ddd; display: flex; flex-direction: column; height: 100%; z-index: 5; }
+        .sidebar-header { background: #008069; color: white; padding: 15px; z-index: 10; padding-top: calc(15px + env(safe-area-inset-top)); }
         .app-title { font-size: 20px; font-weight: bold; display: block; margin-bottom: 2px; letter-spacing: 0.5px; }
         .my-profile { font-size: 13px; color: #d9fdd3; font-weight: normal; display: block; margin-bottom: 8px; }
-        
-        /* Gaya khusus pikeun aksara sub-judul Kontak Aktip */
-        .sub-title-kontak {
-            font-size: 12px; color: #f0f2f5; text-transform: uppercase; letter-spacing: 1px; font-weight: bold; display: block; margin-top: 5px; opacity: 0.9;
-        }
-        
+        .sub-title-kontak { font-size: 12px; color: #f0f2f5; text-transform: uppercase; letter-spacing: 1px; font-weight: bold; display: block; margin-top: 5px; opacity: 0.9; }
         #user-list { list-style: none; overflow-y: auto; flex: 1; }
-        #user-list li {
-            padding: 15px; border-bottom: 1px solid #eee; cursor: pointer;
-            font-weight: 500; font-size: 15px; color: #333; display: flex; justify-content: space-between; align-items: center;
-        }
+        #user-list li { padding: 15px; border-bottom: 1px solid #eee; cursor: pointer; font-weight: 500; font-size: 15px; color: #333; display: flex; justify-content: space-between; align-items: center; }
         #user-list li:hover { background: #f0f2f5; }
         #user-list li.active-chat { background: #e5ddd5; color: #008069; font-weight: bold; }
-
-        .badge-notif {
-            background-color: #25d366; color: white; font-size: 11px;
-            padding: 2px 7px; border-radius: 10px; font-weight: bold;
-        }
-
-        /* --- SISI KATUHU: ROOM CHAT --- */
-        #main-chat { 
-            width: 70%; display: flex; flex-direction: column; height: 100%; background: #efeae2; 
-        }
-        .header { 
-            background-color: #008069; color: white; padding: 15px; font-size: 16px; font-weight: bold; 
-            display: flex; align-items: center; gap: 12px; min-height: 60px;
-            padding-top: calc(15px + env(safe-area-inset-top));
-        }
-        
+        .badge-notif { background-color: #25d366; color: white; font-size: 11px; padding: 2px 7px; border-radius: 10px; font-weight: bold; }
+        #main-chat { width: 70%; display: flex; flex-direction: column; height: 100%; background: #efeae2; }
+        .header { background-color: #008069; color: white; padding: 15px; font-size: 16px; font-weight: bold; display: flex; align-items: center; gap: 12px; min-height: 60px; padding-top: calc(15px + env(safe-area-inset-top)); }
         .back-btn { display: none; background: none; border: none; color: white; font-size: 20px; cursor: pointer; font-weight: bold; padding: 0 5px; }
-
-        /* Tampilan Kotak Login */
-        #login-area {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(239, 234, 226, 0.98); display: flex; flex-direction: column;
-            justify-content: center; align-items: center; z-index: 20;
-        }
+        #login-area { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(239, 234, 226, 0.98); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 20; }
         #login-input { padding: 12px; width: 80%; max-width: 300px; border: 1px solid #ccc; border-radius: 20px; margin-bottom: 15px; text-align: center; font-size: 16px; outline: none; }
         #login-btn { background: #008069; color: white; border: none; padding: 10px 25px; border-radius: 20px; font-weight: bold; cursor: pointer; }
-
         #chat-rooms-wrapper { flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; }
         .chat-messages-holder { list-style-type: none; flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; height: 100%; }
         .chat-messages-holder li { max-width: 75%; padding: 8px 12px; border-radius: 8px; font-size: 15px; line-height: 1.4; word-wrap: break-word; box-shadow: 0 1px 1px rgba(0,0,0,0.1); white-space: pre-wrap; }
         .my-message { background-color: #d9fdd3; align-self: flex-end; border-top-right-radius: 0; }
         .other-message { background-color: #ffffff; align-self: flex-start; border-top-left-radius: 0; }
         .sender-id { font-size: 11px; font-weight: bold; color: #128c7e; margin-bottom: 2px; }
-
-        #form { 
-            background: #f0f2f5; padding: 10px; display: flex; gap: 10px; align-items: flex-end;
-            padding-bottom: calc(10px + env(safe-area-inset-bottom));
-            position: relative; z-index: 15;
-        }
+        #form { background: #f0f2f5; padding: 10px; display: flex; gap: 10px; align-items: flex-end; padding-bottom: calc(10px + env(safe-area-inset-bottom)); position: relative; z-index: 15; }
         #input { border: none; padding: 10px 15px; flex: 1; border-radius: 15px; outline: none; font-size: 15px; background: white; resize: none; height: 40px; max-height: 100px; }
         #form button { background: #008069; color: white; border: none; padding: 12px 18px; border-radius: 50%; cursor: pointer; font-size: 16px; height: 42px; width: 42px; display: flex; align-items: center; justify-content: center; }
-
-        /* --- TAMPILAN RESPONSIF KHUSUS HP --- */
         @media (max-width: 768px) {
             .back-btn { display: inline-block; }
-            
             #sidebar { width: 100%; position: absolute; height: 100%; left: 0; top: 0; transition: transform 0.25s ease-in-out; transform: translateX(0); }
             #main-chat { width: 100%; position: absolute; height: 100%; left: 0; top: 0; transition: transform 0.25s ease-in-out; transform: translateX(100%); }
-            
             #chat-container.in-room #sidebar { transform: translateX(-100%); }
             #chat-container.in-room #main-chat { transform: translateX(0); }
         }
@@ -116,11 +65,9 @@
                 <button class="back-btn" onclick="backToContacts()">⬅</button>
                 <span id="chat-target-title">📢 Sadaya Jalma</span>
             </div>
-            
             <div id="chat-rooms-wrapper">
                 <ul id="msg-room-Semua" class="chat-messages-holder"></ul>
             </div>
-            
             <form id="form" action="">
                 <textarea id="input" placeholder="Ketik pesen di dieu..." rows="1"></textarea>
                 <button>▶</button>
@@ -183,14 +130,7 @@
             
             users.forEach(user => {
                 if(user !== myId) {
-                    if (!document.getElementById(`msg-room-${user}`)) {
-                        const newRoom = document.createElement('ul');
-                        newRoom.id = `msg-room-${user}`;
-                        newRoom.className = 'chat-messages-holder';
-                        newRoom.style.display = 'none';
-                        roomsWrapper.appendChild(newRoom);
-                    }
-                    
+                    checkAndCreateRoom(user);
                     let displayBadge = unreadCounts[user] ? 'inline' : 'none';
                     userList.innerHTML += `
                         <li onclick="selectTarget('${user}')" id="target-${user}" class="${targetChat === user ? 'active-chat' : ''}">
@@ -198,6 +138,24 @@
                             <span class="badge-notif" id="badge-${user}" style="display: ${displayBadge}">${unreadCounts[user] || 0}</span>
                         </li>`;
                 }
+            });
+        });
+
+        // Fungsi pikeun mastikeun kamar chat parantos aya
+        function checkAndCreateRoom(user) {
+            if (!document.getElementById(`msg-room-${user}`)) {
+                const newRoom = document.createElement('ul');
+                newRoom.id = `msg-room-${user}`;
+                newRoom.className = 'chat-messages-holder';
+                newRoom.style.display = 'none';
+                roomsWrapper.appendChild(newRoom);
+            }
+        }
+
+        // --- FITUR ANYAR: NOMPANGKEUN SAJARAH CHAT TI SQLITE ---
+        socket.on('load history', function(chatHistory) {
+            chatHistory.forEach(data => {
+                appendMessageToRoom(data, false); // Pasang sjarah tanpa disada sora notif
             });
         });
 
@@ -237,6 +195,11 @@
         });
 
         socket.on('chat message', function(data) {
+            appendMessageToRoom(data, true); // Pasang chat anyar kalayan sora notif pami aya
+        });
+
+        // Fungsi saderhana pikeun nempelkeun pesen ka kamar chat anu pas
+        function appendMessageToRoom(data, playSound) {
             let roomName = "";
             if (data.target === 'Semua') {
                 roomName = "Semua";
@@ -246,7 +209,9 @@
                 roomName = data.id;
             }
 
+            checkAndCreateRoom(roomName);
             const targetRoom = document.getElementById(`msg-room-${roomName}`);
+            
             if (targetRoom) {
                 const item = document.createElement('li');
                 if (data.id === myId) {
@@ -256,7 +221,7 @@
                     item.className = 'other-message';
                     item.innerHTML = roomName === 'Semua' ? `<div class="sender-id">${data.id}</div><div>${data.message}</div>` : `<div>${data.message}</div>`;
                     
-                    if (roomName !== targetChat) {
+                    if (playSound && roomName !== targetChat) {
                         unreadCounts[roomName] = (unreadCounts[roomName] || 0) + 1;
                         const badge = document.getElementById(`badge-${roomName}`);
                         if (badge) {
@@ -264,13 +229,13 @@
                             badge.style.display = 'inline';
                         }
                     }
-                    notifSound.play().catch(err => console.log("Audio active"));
+                    if(playSound) notifSound.play().catch(err => console.log("Audio active"));
                 }
                 
                 targetRoom.appendChild(item);
                 targetRoom.scrollTop = targetRoom.scrollHeight;
             }
-        });
+        }
     </script>
 </body>
 </html>
