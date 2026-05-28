@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Aplikasi Chat WA</title>
+    <title>Aplikasi Obrolan Kuring</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
         body { background-color: #efeae2; display: flex; justify-content: center; height: 100vh; height: 100dvh; overflow: hidden; }
@@ -121,7 +121,7 @@
             if (savedId) {
                 myId = savedId;
                 loginArea.style.display = 'none';
-                myNameDisplay.innerText = "Akun kuring: " + myId;
+                myNameDisplay.innerText = "Akun kuring : " + myId;
                 socket.emit('user login', myId);
             }
         });
@@ -132,7 +132,7 @@
                 myId = enteredName;
                 localStorage.setItem('chat_username', myId);
                 loginArea.style.display = 'none';
-                myNameDisplay.innerText = "Akun kuring: " + myId;
+                myNameDisplay.innerText = "Akun kuring : " + myId;
                 socket.emit('user login', myId);
             } else {
                 alert("Nami teu kenging kosong nya, Kang!");
