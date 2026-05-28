@@ -282,14 +282,15 @@
         
                 }
                 catch (err) {
-        
-                    console.log(err);
-        
+
+                    console.log("DETAIL ERROR:", err.name);
+                    console.log("DETAIL ERROR:", err.message);
+                
                     alert(
                         "Mikrofon gagal diakses.\n\n" +
-                        "Pastikeun izin mikrofon diidinan."
+                        err.message
                     );
-        
+                
                 }
         
             }
