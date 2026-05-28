@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="su">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aplikasi Chat - Notifikasi Sora</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #e5ddd5; height: 100vh; display: flex; justify-content: center; align-items: center; }
+        .wadah-utama { display: flex; width: 900px; height: 85vh; background: white; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.15); overflow: hidden; }
+        
+        /* LOGIN */
+        #bagian-login { width: 100%; padding: 40px; text-align: center; background: white; box-sizing: border-box; }
+        #bagian-login input, #bagian-login button { width: 100%; max-width: 300px; padding: 12px; margin: 8px 0; border: 1px solid #ccc; border-radius: 5px; font-size: 1em; }
+        
+        /* APLIKASI UTAMA */
+        #bagian-chat { display: none; width: 100%; height: 100%; }
+        .layout-wa { display: flex; width: 100%; height: 100%; }
+
+        /* SIDEBAR KIRI */
+        .sidebar { width: 30%; background: #f0f2f5; border-right: 1px solid #ddd; display: flex; flex-direction: column; }
+        .header-sidebar { padding: 15px; background: #ededed; display: flex; flex-direction: column; gap: 10px; border-bottom: 1px solid #ddd; }
+        .header-sidebar h4 { margin: 0; color: #333; }
+        .select-anyar { padding: 8px; width: 100%; border-radius: 5px; border: 1px solid #ccc; background: white; font-size: 0.9em; }
+        .daptar-obrolan { flex: 1; overflow-y: auto; list-style: none; margin: 0; padding: 0; }
+        
+        /* ITEM KONTAK & NOTIFIKASI */
+        .kontak-item { padding: 15px 20px; border-bottom: 1px solid #e9ecef; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: 0.2s; }
+        .kontak-item:hover { background: #ebebeb; }
+        .kontak-item.aktif { background: #e9ecef; font-weight: bold; }
+        .notif-badge { background: #25d366; color: white; border-radius: 50%; padding: 2px 7px; font-size: 0.75em; font-weight: bold; min-width: 15px; text-align: center; }
+
+        /* ROOM CHAT (KANAN) */
+        .room-chat { width: 70%; display: flex; flex-direction: column; background: #efeae2; }
+        .header-room { padding: 15px 20px; background: #f0f2f5; border-bottom: 1px solid #ddd; font-weight: bold; color: #333; }
+        .messages-container { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+        .pesen-item { padding: 8px 14px; border-radius: 8px; max-width: 65%; word-wrap: break-word; font-size: 0.95em; }
+        .pesen-masuk { background: white; align-self: flex-start; box-shadow: 0 1px 1px rgba(0,0,0,0.1); }
+        .pesen-sorangan { background: #d9fdd3; align-self: flex-end; box-shadow: 0 1px 1px rgba(0,0,0,0.1); }
+        .area-input { padding: 10px 20px; background: #f0f2f5; display: flex; align-items: center; gap: 10px; }
+        .area-input input { flex: 1; padding: 12px; border: none; border-radius: 8px; outline: none; font-size: 1em; }
+        .area-input button { padding: 12px 20px; background: #00a884; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        .layar-kosong { flex: 1; display: flex; justify-content: center; align-items: center; color: #8696a0; font-size: 1.1em; flex-direction: column; gap: 10px; }
+    </style>
+</head>
+<body>
+
+<audio id="sora-notif" src="notif.mp3" preload="auto"></audio>
+
+<div class="wadah-utama">
+    <div id="bagian-login">
+        <h2 style="color: #00a884;">💬 Wilujeng Sumping</h2>
+        <p style="color: #666;">Lebetkeun ID atanapi Nami Akang kanggo ngawitan</p>
+        <input type="text" id="my-id" placeholder="Conto: asep" required><br>
+        <button id="btn-login" style="background: #00a884; color: white; font-weight: bold; cursor: pointer;">Lebet Chat</button>
+    </div>
+
+    <div id="bagian-chat">
+        <div class="layout-wa">
+            
+            <div class="sidebar">
+                <div class="header-sidebar">
+                    <h4 id="halo-pangguna">ID: -</h4>
+                    <select id="pilih-target-anyar" class="select-anyar">
+                        <option value="">➕ Mimitian chat anyar...</option>
+                    </select>
+                </div>
+                <ul id="daptar-obrolan-aktif" class="daptar-obrolan"></ul>
+            </div>
+
+            <div class="room-chat">
+                <div id="layar-wilujeng" class="layar-kosong">
+                    <span style="font-size: 3em;">💬</span>
+                    <span>Mangga milih atanapi mimitian obrolan énggal di palih kénca.</span>
+                </div>
+
+                <div id="konten-room-aktif" style="display: none; flex-direction: column; height: 100%;">
+                    <div id="judul-chat-aktif" class="header-room">Nami Kontak</div>
+                    <div id="messages" class="messages-container"></div>
+                    <div class="area-input">
+                        <input type="text" id="input-pesen" placeholder="Serat pesen...">
+                        <button id="btn-kirim">Kirim</button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+    const socket = io();
+    
+    const bagianLogin = document.getElementById('bagian-login');
+    const bagianChat = document.getElementById('bagian-chat');
+    const myIdInput = document.getElementById('my-id');
+    const pilihTargetAnyar = document.getElementById('pilih-target-anyar');
+    const daptarObrolanAktif = document.getElementById('daptar-obrolan-aktif');
+    const messagesContainer = document.getElementById('messages');
+    const haloPangguna = document.getElementById('halo-pangguna');
+    const judulChatAktif = document.getElementById('judul-chat-aktif');
+    const inputPesen = document.getElementById('input-pesen');
+    const btnKirim = document.getElementById('btn-kirim');
+    const layarWilujeng = document.getElementById('layar-wilujeng');
+    const kontenRoomAktif = document.getElementById('konten-room-aktif');
+    
+    // REVISI: Nyandak elemen audio dina JavaScript
+    const soraNotif = document.getElementById('sora-notif');
+
+    let ID_SAYA = "";
+    let CHAT_SEMENTARA_DIBUKA = ""; 
+
+    const memoriChat = {}; 
+    const listOrangPernahChat = new Set(); 
+    const jumlahPesenSanesDibaca = {}; 
+
+    // Login
+    document.getElementById('btn-login').addEventListener('click', () => {
+        ID_SAYA = myIdInput.value.trim();
+        if (ID_SAYA) {
+            socket.emit('daftar id', ID_SAYA);
+            haloPangguna.textContent = `🟢 ID Anjeun: ${ID_SAYA}`;
+            bagianLogin.style.display = 'none';
+            bagianChat.style.display = 'block';
+        }
+    });
+
+    pilihTargetAnyar.addEventListener('change', () => {
+        const targetId = pilihTargetAnyar.value;
+        if (targetId) {
+            bukaHalamanChatJalma(targetId);
+            pilihTargetAnyar.value = ""; 
+        }
+    });
+
+    function bukaHalamanChatJalma(idTarget) {
+        CHAT_SEMENTARA_DIBUKA = idTarget;
+        listOrangPernahChat.add(idTarget); 
+        jumlahPesenSanesDibaca[idTarget] = 0;
+
+        layarWilujeng.style.display = 'none';
+        kontenRoomAktif.style.display = 'flex';
+        judulChatAktif.textContent = `👤 ${idTarget}`;
+
+        renderDaptarSidebar(); 
+        tampilkeunSajarahPesen(idTarget);
+    }
+
+    function tampilkeunSajarahPesen(idTarget) {
+        messagesContainer.innerHTML = '';
+        if (!memoriChat[idTarget]) memoriChat[idTarget] = [];
+
+        memoriChat[idTarget].forEach(chat => {
+            const kelas = (chat.ti === ID_SAYA) ? 'pesen-sorangan' : 'pesen-masuk';
+            const item = document.createElement('div');
+            item.textContent = chat.teks;
+            item.className = `pesen-item ${kelas}`;
+            messagesContainer.appendChild(item);
+        });
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+    function renderDaptarSidebar() {
+        daptarObrolanAktif.innerHTML = '';
+        listOrangPernahChat.forEach(idTarget => {
+            const li = document.createElement('li');
+            li.className = 'kontak-item';
+            if (idTarget === CHAT_SEMENTARA_DIBUKA) li.classList.add('aktif');
+            
+            const acanDibaca = jumlahPesenSanesDibaca[idTarget] || 0;
+            let badgeHtml = "";
+            if (acanDibaca > 0) {
+                badgeHtml = `<span class="notif-badge">${acanDibaca}</span>`;
+            }
+
+            li.innerHTML = `<span>👤 ${idTarget}</span> ${badgeHtml}`;
+            li.addEventListener('click', () => { bukaHalamanChatJalma(idTarget); });
+            daptarObrolanAktif.appendChild(li);
+        });
+    }
+
+    btnKirim.addEventListener('click', () => { kirimPesenAksi(); });
+    inputPesen.addEventListener('keypress', (e) => { if (e.key === 'Enter') kirimPesenAksi(); });
+
+    function kirimPesenAksi() {
+        const pesen = inputPesen.value.trim();
+        if (CHAT_SEMENTARA_DIBUKA && pesen) {
+            socket.emit('kirim pesen pribadi', { kaId: CHAT_SEMENTARA_DIBUKA, pesen: pesen });
+            if (!memoriChat[CHAT_SEMENTARA_DIBUKA]) memoriChat[CHAT_SEMENTARA_DIBUKA] = [];
+            memoriChat[CHAT_SEMENTARA_DIBUKA].push({ ti: ID_SAYA, teks: pesen });
+            tampilkeunSajarahPesen(CHAT_SEMENTARA_DIBUKA);
+            inputPesen.value = '';
+        }
+    }
+
+    // REVISI: Nambihan pungsi sora nalika nampi pesen pribadi
+    socket.on('tampi pesen pribadi', (data) => {
+        const tiId = data.tiId;
+        
+        if (!memoriChat[tiId]) memoriChat[tiId] = [];
+        memoriChat[tiId].push({ ti: tiId, teks: data.pesen });
+
+        listOrangPernahChat.add(tiId); 
+
+        if (CHAT_SEMENTARA_DIBUKA !== tiId) {
+            if (!jumlahPesenSanesDibaca[tiId]) jumlahPesenSanesDibaca[tiId] = 0;
+            jumlahPesenSanesDibaca[tiId] += 1; 
+        }
+
+        // MAINKAN SORA NOTIFIKASI
+        // play() bakal jalan upami pangguna parantos interaksi sareng halaman (klik/ngetik)
+        soraNotif.currentTime = 0; // Balikeun sora ka awal sangkan teu telat upami aya chat beruntun
+        soraNotif.play().catch(err => console.log("Sora katahan ku browser sateuacan aya klik: ", err));
+
+        if (CHAT_SEMENTARA_DIBUKA === tiId) {
+            tampilkeunSajarahPesen(tiId);
+        } else {
+            renderDaptarSidebar(); 
+        }
+    });
+
+    socket.on('daptar online', (daftar) => {
+        pilihTargetAnyar.innerHTML = '<option value="">➕ Mimitian chat anyar...</option>';
+        const baturOnline = daftar.filter(id => id !== ID_SAYA);
+        baturOnline.forEach(id => {
+            const opsi = document.createElement('option');
+            opsi.value = id;
+            opsi.textContent = `🟢 ${id}`;
+            pilihTargetAnyar.appendChild(opsi);
+        });
+    });
+
+    socket.on('eror', (pesanEror) => { alert(pesanEror); });
+</script>
+</body>
+</html>
