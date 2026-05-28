@@ -122,6 +122,10 @@
         let mediaRecorder;
         let audioChunks = [];
         let isRecording = false;
+        if (!navigator.mediaDevices || !window.MediaRecorder) {
+            alert("Voice Note teu didukung ku aplikasi ieu.");
+        }
+        
 
         const container = document.getElementById('chat-container');
         const form = document.getElementById('form');
@@ -223,7 +227,9 @@
             if (!isRecording) {
                 navigator.mediaDevices.getUserMedia({ audio: true })
                     .then(stream => {
-                        mediaRecorder = new MediaRecorder(stream);
+                        mediaRecorder = new MediaRecorder(stream, {
+                            mimeType: 'audio/webm'
+                        });
                         audioChunks = [];
                         
                         mediaRecorder.ondataavailable = event => {
@@ -231,7 +237,7 @@
                         };
 
                         mediaRecorder.onstop = () => {
-                            const audioBlob = new Blob(audioChunks, { type: 'audio/mp3' });
+                            const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
                             const reader = new FileReader();
                             reader.onload = function(e) {
                                 socket.emit('chat message', {
@@ -248,7 +254,17 @@
                         isRecording = true;
                         vnBtn.classList.add('recording-active');
                         vnBtn.innerText = '🔴';
-                    }).catch(err => alert("Punten kedah masihan izin mikrofon heula, Kang!"));
+                    }).catch(err => {
+                        console.log(err);
+                    
+                        alert(
+                            "Voice Note gagal dijalankeun.\n\n" +
+                            "Cek:\n" +
+                            "- izin mikrofon\n" +
+                            "- HTTPS aktif\n" +
+                            "- WebView support MediaRecorder"
+                        );
+                    });
             } else {
                 mediaRecorder.stop();
                 isRecording = false;
@@ -386,7 +402,10 @@
                 } else if(data.msgType === 'image') {
                     renderContent = `<img src="${data.message}" class="chat-img" onclick="window.open(this.src)">`;
                 } else if(data.msgType === 'audio') {
-                    renderContent = `<audio src="${data.message}" controls controlsList="nodownload"></audio>`;
+                    renderContent = `
+                        <audio controls controlsList="nodownload">
+                            <source src="${data.message}" type="audio/webm">
+                        </audio>`;
                 } else if(data.msgType === 'file') {
                     renderContent = `<a href="${data.message}" download="${data.fileName}" class="chat-file-link">📂 ${data.fileName}</a>`;
                 } else {
