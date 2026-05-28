@@ -497,5 +497,17 @@
         .then(() => console.log('SW registered'));
     }
     </script>
+
+    <script>
+    window.addEventListener('beforeinstallprompt', (e) => {
+    
+        e.preventDefault();
+    
+        console.log('PWA bisa diinstall');
+    
+        window.deferredPrompt = e;
+    
+    });
+    </script>
 </body>
 </html>
