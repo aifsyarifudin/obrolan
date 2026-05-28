@@ -7,7 +7,6 @@
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
         
-        /* Nganggo 100dvh supados ukuran body dinamis nuturkeun kibor HP */
         body { background-color: #efeae2; display: flex; justify-content: center; height: 100vh; height: 100dvh; overflow: hidden; }
         
         #chat-container {
@@ -20,11 +19,14 @@
             width: 30%; min-width: 280px; background: white; border-right: 1px solid #ddd;
             display: flex; flex-direction: column; height: 100%; z-index: 5;
         }
+        
+        /* Modifikasi header kanggo nami aplikasi anyar */
         .sidebar-header { 
-            background: #008069; color: white; padding: 15px; font-weight: bold; font-size: 16px; 
+            background: #008069; color: white; padding: 15px; z-index: 10;
             padding-top: calc(15px + env(safe-area-inset-top));
         }
-        .my-profile { font-size: 12px; color: #d9fdd3; font-weight: normal; margin-top: 4px; display: block; }
+        .app-title { font-size: 20px; font-weight: bold; display: block; margin-bottom: 5px; letter-spacing: 0.5px; }
+        .my-profile { font-size: 13px; color: #d9fdd3; font-weight: normal; display: block; }
         
         #user-list { list-style: none; overflow-y: auto; flex: 1; }
         #user-list li {
@@ -67,7 +69,6 @@
         .other-message { background-color: #ffffff; align-self: flex-start; border-top-left-radius: 0; }
         .sender-id { font-size: 11px; font-weight: bold; color: #128c7e; margin-bottom: 2px; }
 
-        /* Ngalereskeun kotak form supados tetep muat di luhureun kibor */
         #form { 
             background: #f0f2f5; padding: 10px; display: flex; gap: 10px; align-items: flex-end;
             padding-bottom: calc(10px + env(safe-area-inset-bottom));
@@ -99,7 +100,7 @@
 
         <div id="sidebar">
             <div class="sidebar-header">
-                Kontak Aktip
+                <span class="app-title">Obrolan Kuring</span>
                 <span class="my-profile" id="my-name-display">Akun: -</span>
             </div>
             <ul id="user-list"></ul>
@@ -213,7 +214,6 @@
             const badge = document.getElementById(`badge-${user}`);
             if (badge) badge.style.display = 'none';
             
-            // Otomatis gulung ka handap saatos pindah room
             setTimeout(() => { if(activeRoom) activeRoom.scrollTop = activeRoom.scrollHeight; }, 100);
         }
 
