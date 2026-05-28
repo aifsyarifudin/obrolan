@@ -29,11 +29,21 @@
         #login-input { padding: 12px; width: 80%; max-width: 300px; border: 1px solid #ccc; border-radius: 20px; margin-bottom: 15px; text-align: center; font-size: 16px; outline: none; }
         #login-btn { background: #008069; color: white; border: none; padding: 10px 25px; border-radius: 20px; font-weight: bold; cursor: pointer; }
         #chat-rooms-wrapper { flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; }
+        
         .chat-messages-holder { list-style-type: none; flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; height: 100%; }
-        .chat-messages-holder li { max-width: 75%; padding: 8px 12px; border-radius: 8px; font-size: 15px; line-height: 1.4; word-wrap: break-word; box-shadow: 0 1px 1px rgba(0,0,0,0.1); white-space: pre-wrap; }
-        .my-message { background-color: #d9fdd3; align-self: flex-end; border-top-right-radius: 0; }
+        .chat-messages-holder li { max-width: 75%; padding: 8px 12px; border-radius: 8px; font-size: 15px; line-height: 1.4; word-wrap: break-word; box-shadow: 0 1px 1px rgba(0,0,0,0.1); white-space: pre-wrap; position: relative; display: flex; flex-direction: column; }
+        .my-message { background-color: #d9fdd3; align-self: flex-end; border-top-right-radius: 0; padding-right: 25px !important; }
         .other-message { background-color: #ffffff; align-self: flex-start; border-top-left-radius: 0; }
         .sender-id { font-size: 11px; font-weight: bold; color: #128c7e; margin-bottom: 2px; }
+        
+        /* Gaya khusus pikeun tulisan pesen anu dihapus */
+        .deleted-text { color: #8696a0; font-style: italic; }
+
+        /* Tombol tong runtah leutik pikeun hapus pesen */
+        .del-btn { position: absolute; top: 6px; right: 6px; background: none; border: none; color: #8696a0; font-size: 12px; cursor: pointer; display: none; }
+        .my-message:hover .del-btn { display: inline-block; }
+        .del-btn:hover { color: #ea0038; }
+
         #form { background: #f0f2f5; padding: 10px; display: flex; gap: 10px; align-items: flex-end; padding-bottom: calc(10px + env(safe-area-inset-bottom)); position: relative; z-index: 15; }
         #input { border: none; padding: 10px 15px; flex: 1; border-radius: 15px; outline: none; font-size: 15px; background: white; resize: none; height: 40px; max-height: 100px; }
         #form button { background: #008069; color: white; border: none; padding: 12px 18px; border-radius: 50%; cursor: pointer; font-size: 16px; height: 42px; width: 42px; display: flex; align-items: center; justify-content: center; }
@@ -43,6 +53,7 @@
             #main-chat { width: 100%; position: absolute; height: 100%; left: 0; top: 0; transition: transform 0.25s ease-in-out; transform: translateX(100%); }
             #chat-container.in-room #sidebar { transform: translateX(-100%); }
             #chat-container.in-room #main-chat { transform: translateX(0); }
+            .del-btn { display: inline-block; } /* Di HP langsung nembongan supados gampil diklik */
         }
     </style>
 </head>
@@ -105,7 +116,6 @@
         const loginInput = document.getElementById('login-input');
         const loginBtn = document.getElementById('login-btn');
 
-        // --- DILERESKEUN: Mastikeun kontak aktip langsung menta data saatos jaringan nyambung ---
         socket.on('connect', () => {
             const savedId = localStorage.getItem('chat_username');
             if (savedId) {
@@ -221,14 +231,36 @@
             appendMessageToRoom(data, true);
         });
 
+        // --- FITUR ANYAR: REAKSI NALIKA AYA NOTIFIKASI PESEN DIHAPUS ---
+        socket.on('message deleted', function(msgId) {
+            const msgBubble = document.getElementById(`msg-${msgId}`);
+            if (msgBubble) {
+                // Ganti téks eusi balon chat janten katerangan hapus
+                const textContainer = msgBubble.querySelector('.text-content');
+                if (textContainer) {
+                    textContainer.innerHTML = `<span class="deleted-text">🚫 Pesen ieu parantos dihapus</span>`;
+                }
+                // Nyumputkeun tombol hapus supados teu tiasa diklik deui
+                const delBtn = msgBubble.querySelector('.del-btn');
+                if (delBtn) delBtn.remove();
+            }
+        });
+
+        // Fungsi ngirim sinyal hapus ka server
+        function requestDeleteMessage(msgId) {
+            if (confirm("Naha leres hoyong mupus pesen ieu kanggo sadayana?")) {
+                socket.emit('delete message', msgId);
+            }
+        }
+
         function appendMessageToRoom(data, playSound) {
             let roomName = "";
             if (data.target === 'Semua') {
                 roomName = "Semua";
-            } else if (data.id === myId) {
+            } else if (data.sender === myId) {
                 roomName = data.target;
             } else if (data.target === myId) {
-                roomName = data.id;
+                roomName = data.sender;
             }
 
             checkAndCreateRoom(roomName);
@@ -236,12 +268,18 @@
             
             if (targetRoom) {
                 const item = document.createElement('li');
-                if (data.id === myId) {
+                item.id = `msg-${data.msgId}`; // Masangkeun ID balon chat dumasar msgId ti server
+                
+                let messageContent = data.isDeleted ? `<span class="deleted-text">${data.message}</span>` : data.message;
+
+                if (data.sender === myId) {
                     item.className = 'my-message';
-                    item.innerHTML = `<div>${data.message}</div>`;
+                    // Tambihan tombol tong runtah 🗑️ khusus pikeun pesen urang sorangan anu acan dihapus
+                    let deleteButton = data.isDeleted ? '' : `<button class="del-btn" onclick="requestDeleteMessage('${data.msgId}')">🗑️</button>`;
+                    item.innerHTML = `<div class="text-content">${messageContent}</div>${deleteButton}`;
                 } else {
                     item.className = 'other-message';
-                    item.innerHTML = roomName === 'Semua' ? `<div class="sender-id">${data.id}</div><div>${data.message}</div>` : `<div>${data.message}</div>`;
+                    item.innerHTML = roomName === 'Semua' ? `<div class="sender-id">${data.sender}</div><div class="text-content">${messageContent}</div>` : `<div class="text-content">${messageContent}</div>`;
                     
                     if (playSound && roomName !== targetChat) {
                         unreadCounts[roomName] = (unreadCounts[roomName] || 0) + 1;
