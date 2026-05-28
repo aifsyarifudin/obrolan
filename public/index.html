@@ -513,5 +513,50 @@
     
     });
     </script>
+
+    <script>
+    let deferredPrompt;
+    
+    window.addEventListener('beforeinstallprompt', (e) => {
+    
+        e.preventDefault();
+    
+        deferredPrompt = e;
+    
+        // tampilkeun tombol install manual
+        const installBtn = document.createElement('button');
+    
+        installBtn.innerText = '📲 Install Aplikasi';
+    
+        installBtn.style.position = 'fixed';
+        installBtn.style.bottom = '20px';
+        installBtn.style.right = '20px';
+        installBtn.style.zIndex = '9999';
+        installBtn.style.padding = '12px 18px';
+        installBtn.style.border = 'none';
+        installBtn.style.borderRadius = '30px';
+        installBtn.style.background = '#008069';
+        installBtn.style.color = '#fff';
+        installBtn.style.fontWeight = 'bold';
+    
+        document.body.appendChild(installBtn);
+    
+        installBtn.addEventListener('click', async () => {
+    
+            installBtn.remove();
+    
+            deferredPrompt.prompt();
+    
+            const choiceResult =
+                await deferredPrompt.userChoice;
+    
+            console.log(choiceResult.outcome);
+    
+            deferredPrompt = null;
+    
+        });
+    
+    });
+    </script>
 </body>
 </html>
