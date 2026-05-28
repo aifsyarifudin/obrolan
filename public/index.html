@@ -223,54 +223,43 @@
         }
 
         // --- PROSES VOICE NOTE (REKAMAN SORA) ---
-        async function toggleVoiceRecord() {
-
-            if (!navigator.mediaDevices) {
-                alert("Browser teu support microphone.");
-                return;
-            }
+        let mediaRecorder;
+        let audioChunks = [];
+        let isRecording = false;
+        let currentStream = null;
         
-            if (!window.MediaRecorder) {
-                alert("MediaRecorder teu didukung.");
-                return;
-            }
+        async function toggleVoiceRecord() {
         
             // MULAI REKAM
             if (!isRecording) {
         
                 try {
         
-                    const stream = await navigator.mediaDevices.getUserMedia({
+                    currentStream = await navigator.mediaDevices.getUserMedia({
                         audio: true
                     });
         
                     audioChunks = [];
         
-                    let options = {};
+                    mediaRecorder = new MediaRecorder(currentStream);
         
-                    // cek format anu didukung
-                    if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
-                        options.mimeType = 'audio/webm;codecs=opus';
-                    }
-                    else if (MediaRecorder.isTypeSupported('audio/webm')) {
-                        options.mimeType = 'audio/webm';
-                    }
-                    else if (MediaRecorder.isTypeSupported('audio/mp4')) {
-                        options.mimeType = 'audio/mp4';
-                    }
+                    mediaRecorder.ondataavailable = (event) => {
         
-                    mediaRecorder = new MediaRecorder(stream, options);
-        
-                    mediaRecorder.ondataavailable = event => {
                         if (event.data.size > 0) {
                             audioChunks.push(event.data);
                         }
+        
                     };
         
                     mediaRecorder.onstop = () => {
         
+                        if (audioChunks.length === 0) {
+                            alert("Voice note gagal direkam");
+                            return;
+                        }
+        
                         const audioBlob = new Blob(audioChunks, {
-                            type: mediaRecorder.mimeType
+                            type: 'audio/webm'
                         });
         
                         const reader = new FileReader();
@@ -288,8 +277,8 @@
         
                         reader.readAsDataURL(audioBlob);
         
-                        // stop mic
-                        stream.getTracks().forEach(track => track.stop());
+                        currentStream.getTracks().forEach(track => track.stop());
+        
                     };
         
                     mediaRecorder.start();
@@ -297,6 +286,7 @@
                     isRecording = true;
         
                     vnBtn.classList.add('recording-active');
+        
                     vnBtn.innerText = '⏹';
         
                 }
@@ -306,11 +296,9 @@
         
                     alert(
                         "Mikrofon gagal diakses.\n\n" +
-                        "Pastikeun:\n" +
-                        "- izin mikrofon diidinan\n" +
-                        "- website HTTPS\n" +
-                        "- browser support VN"
+                        "Pastikeun izin mikrofon diidinan."
                     );
+        
                 }
         
             }
@@ -325,7 +313,9 @@
                 vnBtn.classList.remove('recording-active');
         
                 vnBtn.innerText = '🎙️';
+        
             }
+        
         }
 
         input.addEventListener('input', function() {
@@ -461,12 +451,14 @@
                     renderContent = `<img src="${data.message}" class="chat-img" onclick="window.open(this.src)">`;
                 
                 } else if(data.msgType === 'audio') {
-                
+
                     renderContent = `
-                    <audio controls controlsList="nodownload">
-                        <source src="${data.message}">
+                    <audio controls>
+                        <source src="${data.message}" type="audio/webm">
                     </audio>
                     `;
+                
+                }
                 
                 } else if(data.msgType === 'file') {
                 
