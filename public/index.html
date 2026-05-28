@@ -140,7 +140,7 @@
             if (savedId) {
                 myId = savedId;
                 loginArea.style.display = 'none';
-                myNameDisplay.innerText = "ID Kuring: " + myId;
+                myNameDisplay.innerText = "ID Kuring : " + myId;
                 socket.emit('user login', myId);
             }
         });
@@ -151,7 +151,7 @@
                 myId = enteredName;
                 localStorage.setItem('chat_username', myId);
                 loginArea.style.display = 'none';
-                myNameDisplay.innerText = "ID Kuring: " + myId;
+                myNameDisplay.innerText = "ID Kuring : " + myId;
                 socket.emit('user login', myId);
             } else {
                 alert("Nami teu kenging kosong nya, Kang!");
