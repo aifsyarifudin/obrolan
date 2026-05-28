@@ -9,10 +9,15 @@
         body { background-color: #efeae2; display: flex; justify-content: center; height: 100vh; height: 100dvh; overflow: hidden; }
         #chat-container { display: flex; width: 100%; max-width: 1000px; height: 100vh; height: 100dvh; background: #efeae2; box-shadow: 0 2px 5px rgba(0,0,0,0.1); position: relative; overflow: hidden; }
         #sidebar { width: 30%; min-width: 280px; background: white; border-right: 1px solid #ddd; display: flex; flex-direction: column; height: 100%; z-index: 5; }
-        .sidebar-header { background: #008069; color: white; padding: 15px; z-index: 10; padding-top: calc(15px + env(safe-area-inset-top)); }
+        .sidebar-header { background: #008069; color: white; padding: 15px; z-index: 10; padding-top: calc(15px + env(safe-area-inset-top)); position: relative; }
         .app-title { font-size: 20px; font-weight: bold; display: block; margin-bottom: 2px; letter-spacing: 0.5px; }
         .my-profile { font-size: 13px; color: #d9fdd3; font-weight: normal; display: block; margin-bottom: 8px; }
         .sub-title-kontak { font-size: 12px; color: #f0f2f5; text-transform: uppercase; letter-spacing: 1px; font-weight: bold; display: block; margin-top: 5px; opacity: 0.9; }
+        
+        /* Tombol Kaluar/Log Out di juru luhur katuhu sidebar */
+        .logout-btn { position: absolute; top: calc(18px + env(safe-area-inset-top)); right: 15px; background: #075e54; color: white; border: none; padding: 5px 10px; border-radius: 5px; font-size: 11px; cursor: pointer; font-weight: bold; }
+        .logout-btn:hover { background: #054c44; }
+
         #user-list { list-style: none; overflow-y: auto; flex: 1; }
         #user-list li { padding: 15px; border-bottom: 1px solid #eee; cursor: pointer; font-weight: 500; font-size: 15px; color: #333; display: flex; justify-content: space-between; align-items: center; }
         #user-list li:hover { background: #f0f2f5; }
@@ -28,7 +33,7 @@
         .chat-messages-holder { list-style-type: none; flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; height: 100%; }
         .chat-messages-holder li { max-width: 75%; padding: 8px 12px; border-radius: 8px; font-size: 15px; line-height: 1.4; word-wrap: break-word; box-shadow: 0 1px 1px rgba(0,0,0,0.1); white-space: pre-wrap; }
         .my-message { background-color: #d9fdd3; align-self: flex-end; border-top-right-radius: 0; }
-        .other-message { background-color: #ffffff; align-self: flex-start; border-top-left-radius: 0; }
+        .other-message { background-color: #ffffff; align-start; border-top-left-radius: 0; }
         .sender-id { font-size: 11px; font-weight: bold; color: #128c7e; margin-bottom: 2px; }
         #form { background: #f0f2f5; padding: 10px; display: flex; gap: 10px; align-items: flex-end; padding-bottom: calc(10px + env(safe-area-inset-bottom)); position: relative; z-index: 15; }
         #input { border: none; padding: 10px 15px; flex: 1; border-radius: 15px; outline: none; font-size: 15px; background: white; resize: none; height: 40px; max-height: 100px; }
@@ -56,6 +61,7 @@
                 <span class="app-title">Obrolan Kuring</span>
                 <span class="my-profile" id="my-name-display">Akun: -</span>
                 <span class="sub-title-kontak">Kontak Aktip</span>
+                <button class="logout-btn" onclick="logoutUser()">Ganti ID</button>
             </div>
             <ul id="user-list"></ul>
         </div>
@@ -65,9 +71,11 @@
                 <button class="back-btn" onclick="backToContacts()">⬅</button>
                 <span id="chat-target-title">📢 Sadaya Jalma</span>
             </div>
+            
             <div id="chat-rooms-wrapper">
                 <ul id="msg-room-Semua" class="chat-messages-holder"></ul>
             </div>
+            
             <form id="form" action="">
                 <textarea id="input" placeholder="Ketik pesen di dieu..." rows="1"></textarea>
                 <button>▶</button>
@@ -98,9 +106,23 @@
         const loginInput = document.getElementById('login-input');
         const loginBtn = document.getElementById('login-btn');
 
+        // --- FITUR AUTO LOGIN: Mariksa naha aya nami anu kantos disimpen dina HP ieu ---
+        const savedId = localStorage.getItem('chat_username');
+        if (savedId) {
+            myId = savedId;
+            loginArea.style.display = 'none'; // Nyumputkeun langsung kotak login
+            myNameDisplay.innerText = "Akun: " + myId;
+            socket.emit('user login', myId);
+        }
+
         loginBtn.addEventListener('click', function() {
-            if(loginInput.value.trim() !== "") {
-                myId = loginInput.value.trim();
+            const enteredName = loginInput.value.trim();
+            if(enteredName !== "") {
+                myId = enteredName;
+                
+                // SIMPEN KA STORAGE HP: Supados émut teras sanaos di-refresh
+                localStorage.setItem('chat_username', myId);
+                
                 loginArea.style.display = 'none';
                 myNameDisplay.innerText = "Akun: " + myId;
                 socket.emit('user login', myId);
@@ -108,6 +130,12 @@
                 alert("Nami teu kenging kosong nya, Kang!");
             }
         });
+
+        // Fitur pikeun ganti akun / ngahapus nami anu disimpen dina HP
+        function logoutUser() {
+            localStorage.removeItem('chat_username');
+            window.location.reload(); // Refresh halaman pikeun login deui
+        }
 
         input.addEventListener('input', function() {
             this.style.height = 'auto';
@@ -141,7 +169,6 @@
             });
         });
 
-        // Fungsi pikeun mastikeun kamar chat parantos aya
         function checkAndCreateRoom(user) {
             if (!document.getElementById(`msg-room-${user}`)) {
                 const newRoom = document.createElement('ul');
@@ -152,10 +179,9 @@
             }
         }
 
-        // --- FITUR ANYAR: NOMPANGKEUN SAJARAH CHAT TI SQLITE ---
         socket.on('load history', function(chatHistory) {
             chatHistory.forEach(data => {
-                appendMessageToRoom(data, false); // Pasang sjarah tanpa disada sora notif
+                appendMessageToRoom(data, false);
             });
         });
 
@@ -195,10 +221,9 @@
         });
 
         socket.on('chat message', function(data) {
-            appendMessageToRoom(data, true); // Pasang chat anyar kalayan sora notif pami aya
+            appendMessageToRoom(data, true);
         });
 
-        // Fungsi saderhana pikeun nempelkeun pesen ka kamar chat anu pas
         function appendMessageToRoom(data, playSound) {
             let roomName = "";
             if (data.target === 'Semua') {
