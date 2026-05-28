@@ -20,13 +20,17 @@
             display: flex; flex-direction: column; height: 100%; z-index: 5;
         }
         
-        /* Modifikasi header kanggo nami aplikasi anyar */
         .sidebar-header { 
             background: #008069; color: white; padding: 15px; z-index: 10;
             padding-top: calc(15px + env(safe-area-inset-top));
         }
-        .app-title { font-size: 20px; font-weight: bold; display: block; margin-bottom: 5px; letter-spacing: 0.5px; }
-        .my-profile { font-size: 13px; color: #d9fdd3; font-weight: normal; display: block; }
+        .app-title { font-size: 20px; font-weight: bold; display: block; margin-bottom: 2px; letter-spacing: 0.5px; }
+        .my-profile { font-size: 13px; color: #d9fdd3; font-weight: normal; display: block; margin-bottom: 8px; }
+        
+        /* Gaya khusus pikeun aksara sub-judul Kontak Aktip */
+        .sub-title-kontak {
+            font-size: 12px; color: #f0f2f5; text-transform: uppercase; letter-spacing: 1px; font-weight: bold; display: block; margin-top: 5px; opacity: 0.9;
+        }
         
         #user-list { list-style: none; overflow-y: auto; flex: 1; }
         #user-list li {
@@ -102,6 +106,7 @@
             <div class="sidebar-header">
                 <span class="app-title">Obrolan Kuring</span>
                 <span class="my-profile" id="my-name-display">Akun: -</span>
+                <span class="sub-title-kontak">Kontak Aktip</span>
             </div>
             <ul id="user-list"></ul>
         </div>
