@@ -223,52 +223,107 @@
         }
 
         // --- PROSES VOICE NOTE (REKAMAN SORA) ---
-        function toggleVoiceRecord() {
+        async function toggleVoiceRecord() {
+
+            if (!navigator.mediaDevices) {
+                alert("Browser teu support microphone.");
+                return;
+            }
+        
+            if (!window.MediaRecorder) {
+                alert("MediaRecorder teu didukung.");
+                return;
+            }
+        
+            // MULAI REKAM
             if (!isRecording) {
-                navigator.mediaDevices.getUserMedia({ audio: true })
-                    .then(stream => {
-                        mediaRecorder = new MediaRecorder(stream, {
-                            mimeType: 'audio/webm'
-                        });
-                        audioChunks = [];
-                        
-                        mediaRecorder.ondataavailable = event => {
-                            audioChunks.push(event.data);
-                        };
-
-                        mediaRecorder.onstop = () => {
-                            const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-                            const reader = new FileReader();
-                            reader.onload = function(e) {
-                                socket.emit('chat message', {
-                                    id: myId,
-                                    target: targetChat,
-                                    message: e.target.result,
-                                    msgType: 'audio'
-                                });
-                            };
-                            reader.readAsDataURL(audioBlob);
-                        };
-
-                        mediaRecorder.start();
-                        isRecording = true;
-                        vnBtn.classList.add('recording-active');
-                        vnBtn.innerText = '🔴';
-                    }).catch(err => {
-                        console.log(err);
-                    
-                        alert(
-                            "Voice Note gagal dijalankeun.\n\n" +
-                            "Cek:\n" +
-                            "- izin mikrofon\n" +
-                            "- HTTPS aktif\n" +
-                            "- WebView support MediaRecorder"
-                        );
+        
+                try {
+        
+                    const stream = await navigator.mediaDevices.getUserMedia({
+                        audio: true
                     });
-            } else {
+        
+                    audioChunks = [];
+        
+                    let options = {};
+        
+                    // cek format anu didukung
+                    if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+                        options.mimeType = 'audio/webm;codecs=opus';
+                    }
+                    else if (MediaRecorder.isTypeSupported('audio/webm')) {
+                        options.mimeType = 'audio/webm';
+                    }
+                    else if (MediaRecorder.isTypeSupported('audio/mp4')) {
+                        options.mimeType = 'audio/mp4';
+                    }
+        
+                    mediaRecorder = new MediaRecorder(stream, options);
+        
+                    mediaRecorder.ondataavailable = event => {
+                        if (event.data.size > 0) {
+                            audioChunks.push(event.data);
+                        }
+                    };
+        
+                    mediaRecorder.onstop = () => {
+        
+                        const audioBlob = new Blob(audioChunks, {
+                            type: mediaRecorder.mimeType
+                        });
+        
+                        const reader = new FileReader();
+        
+                        reader.onloadend = () => {
+        
+                            socket.emit('chat message', {
+                                id: myId,
+                                target: targetChat,
+                                message: reader.result,
+                                msgType: 'audio'
+                            });
+        
+                        };
+        
+                        reader.readAsDataURL(audioBlob);
+        
+                        // stop mic
+                        stream.getTracks().forEach(track => track.stop());
+                    };
+        
+                    mediaRecorder.start();
+        
+                    isRecording = true;
+        
+                    vnBtn.classList.add('recording-active');
+                    vnBtn.innerText = '⏹';
+        
+                }
+                catch (err) {
+        
+                    console.log(err);
+        
+                    alert(
+                        "Mikrofon gagal diakses.\n\n" +
+                        "Pastikeun:\n" +
+                        "- izin mikrofon diidinan\n" +
+                        "- website HTTPS\n" +
+                        "- browser support VN"
+                    );
+                }
+        
+            }
+        
+            // STOP REKAM
+            else {
+        
                 mediaRecorder.stop();
+        
                 isRecording = false;
+        
                 vnBtn.classList.remove('recording-active');
+        
                 vnBtn.innerText = '🎙️';
             }
         }
@@ -402,10 +457,14 @@
                 } else if(data.msgType === 'image') {
                     renderContent = `<img src="${data.message}" class="chat-img" onclick="window.open(this.src)">`;
                 } else if(data.msgType === 'audio') {
+
                     renderContent = `
-                        <audio controls controlsList="nodownload">
-                            <source src="${data.message}" type="audio/webm">
-                        </audio>`;
+                    <audio controls controlsList="nodownload">
+                        <source src="${data.message}">
+                    </audio>
+                    `;
+                
+                }
                 } else if(data.msgType === 'file') {
                     renderContent = `<a href="${data.message}" download="${data.fileName}" class="chat-file-link">📂 ${data.fileName}</a>`;
                 } else {
