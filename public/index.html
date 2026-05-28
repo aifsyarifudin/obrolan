@@ -6,10 +6,12 @@
     <title>Aplikasi Chat WA</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
-        body { background-color: #efeae2; display: flex; justify-content: center; height: 100vh; overflow: hidden; }
+        
+        /* Nganggo 100dvh supados ukuran body dinamis nuturkeun kibor HP */
+        body { background-color: #efeae2; display: flex; justify-content: center; height: 100vh; height: 100dvh; overflow: hidden; }
         
         #chat-container {
-            display: flex; width: 100%; max-width: 1000px; height: 100vh;
+            display: flex; width: 100%; max-width: 1000px; height: 100vh; height: 100dvh;
             background: #efeae2; box-shadow: 0 2px 5px rgba(0,0,0,0.1); position: relative; overflow: hidden;
         }
 
@@ -20,7 +22,7 @@
         }
         .sidebar-header { 
             background: #008069; color: white; padding: 15px; font-weight: bold; font-size: 16px; 
-            padding-top: calc(15px + env(safe-area-inset-top)); /* Supados teu katutup poni HP */
+            padding-top: calc(15px + env(safe-area-inset-top));
         }
         .my-profile { font-size: 12px; color: #d9fdd3; font-weight: normal; margin-top: 4px; display: block; }
         
@@ -44,7 +46,7 @@
         .header { 
             background-color: #008069; color: white; padding: 15px; font-size: 16px; font-weight: bold; 
             display: flex; align-items: center; gap: 12px; min-height: 60px;
-            padding-top: calc(15px + env(safe-area-inset-top)); /* Supados header chat teu katutup luhurna */
+            padding-top: calc(15px + env(safe-area-inset-top));
         }
         
         .back-btn { display: none; background: none; border: none; color: white; font-size: 20px; cursor: pointer; font-weight: bold; padding: 0 5px; }
@@ -65,22 +67,22 @@
         .other-message { background-color: #ffffff; align-self: flex-start; border-top-left-radius: 0; }
         .sender-id { font-size: 11px; font-weight: bold; color: #128c7e; margin-bottom: 2px; }
 
+        /* Ngalereskeun kotak form supados tetep muat di luhureun kibor */
         #form { 
             background: #f0f2f5; padding: 10px; display: flex; gap: 10px; align-items: flex-end;
-            padding-bottom: calc(10px + env(safe-area-inset-bottom)); /* Kanggo HP layar poni handap */
+            padding-bottom: calc(10px + env(safe-area-inset-bottom));
+            position: relative; z-index: 15;
         }
         #input { border: none; padding: 10px 15px; flex: 1; border-radius: 15px; outline: none; font-size: 15px; background: white; resize: none; height: 40px; max-height: 100px; }
         #form button { background: #008069; color: white; border: none; padding: 12px 18px; border-radius: 50%; cursor: pointer; font-size: 16px; height: 42px; width: 42px; display: flex; align-items: center; justify-content: center; }
 
-        /* --- PERBAIKAN RESPONSIVE TOTAL DINA HP --- */
+        /* --- TAMPILAN RESPONSIF KHUSUS HP --- */
         @media (max-width: 768px) {
             .back-btn { display: inline-block; }
             
-            /* Sisi Kenca jeung Katuhu didamel Full Screen sarta rapih dina kotak container */
             #sidebar { width: 100%; position: absolute; height: 100%; left: 0; top: 0; transition: transform 0.25s ease-in-out; transform: translateX(0); }
             #main-chat { width: 100%; position: absolute; height: 100%; left: 0; top: 0; transition: transform 0.25s ease-in-out; transform: translateX(100%); }
             
-            /* Pami nuju lebet ka room chat, geser daptar kontakna */
             #chat-container.in-room #sidebar { transform: translateX(-100%); }
             #chat-container.in-room #main-chat { transform: translateX(0); }
         }
@@ -210,6 +212,9 @@
             unreadCounts[user] = 0;
             const badge = document.getElementById(`badge-${user}`);
             if (badge) badge.style.display = 'none';
+            
+            // Otomatis gulung ka handap saatos pindah room
+            setTimeout(() => { if(activeRoom) activeRoom.scrollTop = activeRoom.scrollHeight; }, 100);
         }
 
         function backToContacts() {
