@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Aplikasi Chat WA</title>
+    <title>Aplikasi Obrolan Kuring</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
         body { background-color: #efeae2; display: flex; justify-content: center; height: 100vh; height: 100dvh; overflow: hidden; }
@@ -69,16 +69,16 @@
 
     <div id="chat-container">
         <div id="login-area">
-            <h3 style="color: #008069; margin-bottom: 15px;">Lebetkeun ID / Nami Akang:</h3>
+            <h3 style="color: #008069; margin-bottom: 15px;">Lebetkeun ID / Nami Akang/Eteh:</h3>
             <input type="text" id="login-input" placeholder="Contoh: Asep" autocomplete="off">
-            <button id="login-btn">Lebet Chat</button>
+            <button id="login-btn">Lebet Obrolan</button>
         </div>
 
         <div id="sidebar">
             <div class="sidebar-header">
                 <span class="app-title">Obrolan Kuring</span>
-                <span class="my-profile" id="my-name-display">Akun: -</span>
-                <span class="sub-title-kontak">Kontak Aktip</span>
+                <span class="my-profile" id="my-name-display">ID Kuring: -</span>
+                <span class="sub-title-kontak">Kontak Aktif</span>
                 <button class="logout-btn" onclick="logoutUser()">Ganti ID</button>
             </div>
             <ul id="user-list"></ul>
@@ -87,7 +87,7 @@
         <div id="main-chat">
             <div class="header">
                 <button class="back-btn" onclick="backToContacts()">⬅</button>
-                <span id="chat-target-title">📢 Sadaya Jalma</span>
+                <span id="chat-target-title">📢 Sadaya Jalmi (Broadcast)</span>
             </div>
             
             <div id="chat-rooms-wrapper">
@@ -246,7 +246,7 @@
         socket.on('update user list', function(users) {
             userList.innerHTML = `
                 <li onclick="selectTarget('Semua')" id="target-Semua" class="${targetChat === 'Semua' ? 'active-chat' : ''}">
-                    <span>📢 Sadaya Jalma</span>
+                    <span>📢 Sadaya Jalmi (Broadcast)</span>
                     <span class="badge-notif" id="badge-Semua" style="display: ${unreadCounts['Semua'] ? 'inline' : 'none'}">${unreadCounts['Semua'] || 0}</span>
                 </li>`;
             
@@ -287,7 +287,7 @@
             const activeLi = document.getElementById(`target-${user}`);
             if(activeLi) activeLi.classList.add('active-chat');
             
-            chatTargetTitle.innerText = user === 'Semua' ? "📢 Sadaya Jalma" : `👤 ${user}`;
+            chatTargetTitle.innerText = user === 'Semua' ? "📢 Sadaya Jalmi (Broadcast)" : `👤 ${user}`;
             
             document.querySelectorAll('.chat-messages-holder').forEach(room => room.style.display = 'none');
             const activeRoom = document.getElementById(`msg-room-${user}`);
