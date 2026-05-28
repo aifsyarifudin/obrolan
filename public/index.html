@@ -9,21 +9,21 @@
         body { background-color: #efeae2; display: flex; justify-content: center; height: 100vh; overflow: hidden; }
         
         #chat-container {
-            display: flex; width: 100%; max-width: 900px; height: 100vh;
-            background: #efeae2; box-shadow: 0 2px 5px rgba(0,0,0,0.1); position: relative;
+            display: flex; width: 100%; max-width: 1000px; height: 100vh;
+            background: #efeae2; box-shadow: 0 2px 5px rgba(0,0,0,0.1); position: relative; overflow: hidden;
         }
 
-        /* --- SISI KENCA: SIDEBAR KONTAK --- */
+        /* --- TAMPILAN LAPTOP (DEFAULT) --- */
         #sidebar {
-            width: 30%; background: white; border-right: 1px solid #ddd;
-            display: flex; flex-direction: column; z-index: 5; transition: all 0.3s ease;
+            width: 30%; min-width: 280px; background: white; border-right: 1px solid #ddd;
+            display: flex; flex-direction: column; z-index: 5;
         }
-        .sidebar-header { background: #008069; color: white; padding: 15px; font-weight: bold; font-size: 15px; }
+        .sidebar-header { background: #008069; color: white; padding: 15px; font-weight: bold; font-size: 16px; }
         .my-profile { font-size: 12px; color: #d9fdd3; font-weight: normal; margin-top: 4px; display: block; }
         #user-list { list-style: none; overflow-y: auto; flex: 1; }
         #user-list li {
             padding: 15px; border-bottom: 1px solid #eee; cursor: pointer;
-            font-weight: 500; font-size: 14px; color: #333; display: flex; justify-content: space-between; align-items: center;
+            font-weight: 500; font-size: 15px; color: #333; display: flex; justify-content: space-between; align-items: center;
         }
         #user-list li:hover { background: #f0f2f5; }
         #user-list li.active-chat { background: #e5ddd5; color: #008069; font-weight: bold; }
@@ -33,12 +33,10 @@
             padding: 2px 7px; border-radius: 10px; font-weight: bold;
         }
 
-        /* --- SISI KATUHU: ROOM CHAT --- */
-        #main-chat { width: 70%; display: flex; flex-direction: column; height: 100%; background: #efeae2; transition: all 0.3s ease; }
-        .header { background-color: #008069; color: white; padding: 15px; font-size: 16px; font-weight: bold; display: flex; align-items: center; gap: 10px; }
+        #main-chat { width: 70%; display: flex; flex-direction: column; height: 100%; background: #efeae2; }
+        .header { background-color: #008069; color: white; padding: 15px; font-size: 16px; font-weight: bold; display: flex; align-items: center; gap: 12px; }
         
-        /* Tombol Kembali khusus HP */
-        .back-btn { display: none; background: none; border: none; color: white; font-size: 18px; cursor: pointer; font-weight: bold; }
+        .back-btn { display: none; background: none; border: none; color: white; font-size: 20px; cursor: pointer; font-weight: bold; padding: 0 5px; }
 
         /* Tampilan Kotak Login */
         #login-area {
@@ -55,22 +53,21 @@
         .other-message { background-color: #ffffff; align-self: flex-start; border-top-left-radius: 0; }
         .sender-id { font-size: 11px; font-weight: bold; color: #128c7e; margin-bottom: 2px; }
 
-        /* Form Input nganggo Textarea sangkan tiasa Enter Paragraf anyar */
         #form { background: #f0f2f5; padding: 10px; display: flex; gap: 10px; align-items: flex-end; }
         #input { border: none; padding: 10px 15px; flex: 1; border-radius: 15px; outline: none; font-size: 15px; background: white; resize: none; height: 40px; max-height: 100px; }
         #form button { background: #008069; color: white; border: none; padding: 12px 18px; border-radius: 50%; cursor: pointer; font-size: 16px; height: 42px; width: 42px; display: flex; align-items: center; justify-content: center; }
 
-        /* --- RESPONSIVE LAYOUT KHUSUS HP --- */
-        @media (max-width: 650px) {
+        /* --- SIKAP UTAMA SUPADOS RESPONSIF SIGA WA ASLI DINA HP --- */
+        @media (max-width: 768px) {
             .back-btn { display: inline-block; }
             
-            /* Sistem gilir gentos layar dina HP */
-            #sidebar { width: 100%; position: absolute; height: 100%; left: 0; top: 0; }
-            #main-chat { width: 100%; position: absolute; height: 100%; left: 100%; top: 0; }
+            /* Kontak sareng Room Chat didamel janten Layar Pinuh (100%) masangna silih tumpuk */
+            #sidebar { width: 100%; position: absolute; height: 100%; left: 0; top: 0; transition: transform 0.25s ease-in-out; transform: translateX(0); }
+            #main-chat { width: 100%; position: absolute; height: 100%; left: 0; top: 0; transition: transform 0.25s ease-in-out; transform: translateX(100%); }
             
-            /* Pami nuju ngetik chat, si room chat maju ka hareup */
-            #chat-container.in-room #sidebar { left: -100%; }
-            #chat-container.in-room #main-chat { left: 0; }
+            /* Pami nuju lebet ka room chat (in-room), geser sidebar ka kenca, majukeun room chat ka hareup */
+            #chat-container.in-room #sidebar { transform: translateX(-100%); }
+            #chat-container.in-room #main-chat { transform: translateX(0); }
         }
     </style>
 </head>
@@ -94,7 +91,7 @@
         <div id="main-chat">
             <div class="header">
                 <button class="back-btn" onclick="backToContacts()">⬅</button>
-                <span id="chat-target-title">💬 Kirim ka: Sadaya Jalma</span>
+                <span id="chat-target-title">📢 Sadaya Jalma</span>
             </div>
             
             <div id="chat-rooms-wrapper" style="flex: 1; display: flex; flex-direction: column; overflow: hidden;">
@@ -135,20 +132,18 @@
             if(loginInput.value.trim() !== "") {
                 myId = loginInput.value.trim();
                 loginArea.style.display = 'none';
-                myNameDisplay.innerText = "Akun: " + myId; // Pasang nami akun nyalira
+                myNameDisplay.innerText = "Akun: " + myId;
                 socket.emit('user login', myId);
             } else {
                 alert("Nami teu kenging kosong nya, Kang!");
             }
         });
 
-        // Fitur otomatis ningkatkeun jangkungna kotak pesen pami ngetik panjang
         input.addEventListener('input', function() {
             this.style.height = 'auto';
             this.style.height = (this.scrollHeight) + 'px';
         });
 
-        // Supados pami dipencet 'Enter' langsung ngirim, tapi pami 'Shift + Enter' ngadamel paragraf anyar
         input.addEventListener('keydown', function(e) {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
@@ -185,9 +180,7 @@
 
         function selectTarget(user) {
             targetChat = user;
-            
-            // Majukeun halaman room chat ka payun upami dina HP
-            container.classList.add('in-room');
+            container.classList.add('in-room'); // Aktifkeun mode chat pinuh di HP
 
             document.querySelectorAll('#user-list li').forEach(li => li.classList.remove('active-chat'));
             const activeLi = document.getElementById(`target-${user}`);
@@ -204,9 +197,8 @@
             if (badge) badge.style.display = 'none';
         }
 
-        // Fungsi mulang deui ka daptar kontak (khusus tampilan HP)
         function backToContacts() {
-            container.classList.remove('in-room');
+            container.classList.remove('in-room'); // Balik deui ka daptar kontak di HP
         }
 
         form.addEventListener('submit', function(e) {
@@ -215,7 +207,7 @@
                 const data = { id: myId, target: targetChat, message: input.value };
                 socket.emit('chat message', data);
                 input.value = '';
-                input.style.height = '40px'; // Balikeun ukuran kotak input janten normal
+                input.style.height = '40px';
             }
         });
 
