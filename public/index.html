@@ -116,17 +116,8 @@
 
         let myId = "Anonim";
         let targetChat = "Semua"; 
-        let unreadCounts = {}; 
-        
-        // Aturan rekam sora VN
-        let mediaRecorder;
-        let audioChunks = [];
-        let isRecording = false;
-        if (!navigator.mediaDevices || !window.MediaRecorder) {
-            alert("Voice Note teu didukung ku aplikasi ieu.");
-        }
-        
-
+        let unreadCounts = {};
+    
         const container = document.getElementById('chat-container');
         const form = document.getElementById('form');
         const input = document.getElementById('input');
