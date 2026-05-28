@@ -121,7 +121,7 @@
             if (savedId) {
                 myId = savedId;
                 loginArea.style.display = 'none';
-                myNameDisplay.innerText = "Akun: " + myId;
+                myNameDisplay.innerText = "Akun kuring: " + myId;
                 socket.emit('user login', myId);
             }
         });
@@ -132,7 +132,7 @@
                 myId = enteredName;
                 localStorage.setItem('chat_username', myId);
                 loginArea.style.display = 'none';
-                myNameDisplay.innerText = "Akun: " + myId;
+                myNameDisplay.innerText = "Akun kuring: " + myId;
                 socket.emit('user login', myId);
             } else {
                 alert("Nami teu kenging kosong nya, Kang!");
@@ -159,7 +159,7 @@
         socket.on('update user list', function(users) {
             userList.innerHTML = `
                 <li onclick="selectTarget('Semua')" id="target-Semua" class="${targetChat === 'Semua' ? 'active-chat' : ''}">
-                    <span>📢 Sadaya Jalma</span>
+                    <span>📢 Sadaya Jalmi (Broadcast)</span>
                     <span class="badge-notif" id="badge-Semua" style="display: ${unreadCounts['Semua'] ? 'inline' : 'none'}">${unreadCounts['Semua'] || 0}</span>
                 </li>`;
             
@@ -200,7 +200,7 @@
             const activeLi = document.getElementById(`target-${user}`);
             if(activeLi) activeLi.classList.add('active-chat');
             
-            chatTargetTitle.innerText = user === 'Semua' ? "📢 Sadaya Jalma" : `👤 ${user}`;
+            chatTargetTitle.innerText = user === 'Semua' ? "📢 Sadaya Jalmi (Broadcast)" : `👤 ${user}`;
             
             document.querySelectorAll('.chat-messages-holder').forEach(room => room.style.display = 'none');
             const activeRoom = document.getElementById(`msg-room-${user}`);
