@@ -6,7 +6,7 @@ const path = require('path');
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-// VARIABEL GLOBAL: Nyimpen riwayat chat dina mémori server (Aman tina refresh HP)
+// Nyimpen riwayat chat dina mémori server
 let chatHistory = [];
 let activeUsers = {};
 
@@ -18,25 +18,43 @@ io.on('connection', (socket) => {
         activeUsers[username] = socket.id;
         io.emit('update user list', Object.keys(activeUsers));
 
-        // Kirimkeun sadaya riwayat chat anu kasimpen di server ka jalma nu nembé refresh/login
+        // Kirimkeun sajarah chat ka jalma nu nembé refresh/login
         socket.emit('load history', chatHistory);
     });
 
     socket.on('chat message', (data) => {
-        // Lebetkeun pesen anyar ka jero array sajarah di server
-        chatHistory.push({
+        // Masangkeun ID unik dumasar kana waktos (timestamp) dina unggal pesen
+        const messageId = Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+        
+        const newMessage = {
+            msgId: messageId,
             sender: data.id,
             target: data.target,
-            message: data.message
-        });
+            message: data.message,
+            isDeleted: false
+        };
 
-        // Watesan maksima 200 pesen supados serverna teu beurat
+        chatHistory.push(newMessage);
+
         if (chatHistory.length > 200) {
             chatHistory.shift();
         }
 
-        // Kirimkeun ka sadaya pangguna sacara real-time
-        io.emit('chat message', data);
+        // Kirimkeun pesen anyar ka sadayana
+        io.emit('chat message', newMessage);
+    });
+
+    // --- FITUR ANYAR: PROSÉS HAPUS PESEN DI SERVER ---
+    socket.on('delete message', (msgId) => {
+        // Milari pesen dina sajarah server, teras robah eusina
+        const msgIndex = chatHistory.findIndex(m => m.msgId === msgId);
+        if (msgIndex !== -1) {
+            chatHistory[msgIndex].message = "🚫 Pesen ieu parantos dihapus";
+            chatHistory[msgIndex].isDeleted = true;
+            
+            // Béjaan ka sadaya pangguna yén aya pesen anu dihapus sacara real-time
+            io.emit('message deleted', msgId);
+        }
     });
 
     socket.on('disconnect', () => {
