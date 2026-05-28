@@ -2,52 +2,42 @@ const express = require('express');
 const app = express();
 const http = require('http').createServer(app);
 const io = require('socket.io')(http);
+const path = require('path');
 
-app.use(express.static(__dirname + '/public'));
+app.use(express.static(path.join(__dirname, 'public')));
 
-// Panyimpenan daptar pangguna anu online (ID: SocketID)
-const panggunaOnline = {};
+// Objék kanggo nyimpen daptar pangguna anu aktip
+let activeUsers = {};
 
 io.on('connection', (socket) => {
-    
-    // 1. Nalika pangguna anyar ngadaptarkeun ID-na
-    socket.on('daftar id', (idPangguna) => {
-        socket.idPangguna = idPangguna;
-        panggunaOnline[idPangguna] = socket.id; // Nyimpen hubungan ID sareng jalur koneksina
-        console.log(`Pangguna ${idPangguna} parantos online.`);
+    console.log('Aya nu lebet jaringan');
+
+    // Nalika pangguna anyar ngasupkeun namina
+    socket.on('user login', (username) => {
+        socket.username = username;
+        activeUsers[username] = socket.id; // Simpen nami sareng id socketna
         
-        // Bewara ka sadaya pangguna yén aya nu online
-        io.emit('daptar online', Object.keys(panggunaOnline));
+        // Kirim daptar pangguna énggal ka sadaya jalma
+        io.emit('update user list', Object.keys(activeUsers));
     });
 
-    // 2. Nalika aya nu ngirim pesen pribadi (Private Message)
-    socket.on('kirim pesen pribadi', (data) => {
-        const socketIdTujuan = panggunaOnline[data.kaId];
-        
-        if (socketIdTujuan) {
-            // Kirim pesen ka jalma nu dituju
-            io.to(socketIdTujuan).emit('tampi pesen pribadi', {
-                tiId: socket.idPangguna,
-                pesen: data.pesen
-            });
-        } else {
-            // Upami ID anu dituju teu kapendak/offline
-            socket.emit('eror', `ID '${data.kaId}' nuju offline atanapi teu kapendak.`);
-        }
+    // Nalika aya nu ngirim pesen
+    socket.on('chat message', (data) => {
+        // data eusina: { id: pengirim, target: panampi, message: pesen }
+        io.emit('chat message', data);
     });
 
-    // 3. Nalika pangguna kaluar / offline
+    // Nalika pangguna kaluar / nutup aplikasi
     socket.on('disconnect', () => {
-        if (socket.idPangguna) {
-            delete panggunaOnline[socket.idPangguna];
-            console.log(`Pangguna ${socket.idPangguna} parantos offline.`);
-            io.emit('daptar online', Object.keys(panggunaOnline));
+        if (socket.username) {
+            delete activeUsers[socket.username];
+            io.emit('update user list', Object.keys(activeUsers));
         }
+        console.log('Aya nu kaluar jaringan');
     });
 });
 
-// Robah ieu supados Render tiasa ngatur port-na sorangan sacara otomatis
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8080;
 http.listen(PORT, () => {
     console.log(`Server nuju jalan dina port ${PORT}`);
 });
