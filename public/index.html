@@ -69,7 +69,7 @@
         <div id="sidebar">
             <div class="sidebar-header">
                 <span class="app-title">Obrolan Kuring</span>
-                <span class="my-profile" id="my-name-display">Akun kuring : -</span>
+                <span class="my-profile" id="my-name-display">ID kuring : -</span>
                 <span class="sub-title-kontak">Kontak Aktif</span>
                 <button class="logout-btn" onclick="logoutUser()">Ganti ID</button>
             </div>
@@ -121,7 +121,7 @@
             if (savedId) {
                 myId = savedId;
                 loginArea.style.display = 'none';
-                myNameDisplay.innerText = "Akun kuring : " + myId;
+                myNameDisplay.innerText = "ID kuring : " + myId;
                 socket.emit('user login', myId);
             }
         });
@@ -132,7 +132,7 @@
                 myId = enteredName;
                 localStorage.setItem('chat_username', myId);
                 loginArea.style.display = 'none';
-                myNameDisplay.innerText = "Akun kuring : " + myId;
+                myNameDisplay.innerText = "ID kuring : " + myId;
                 socket.emit('user login', myId);
             } else {
                 alert("Nami teu kenging kosong nya, Kang!");
