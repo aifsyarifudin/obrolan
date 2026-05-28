@@ -106,7 +106,9 @@
         </div>
     </div>
 
-    <audio id="notifSound" src="notif.mp3" preload="auto"></audio>
+    <audio id="notifSound" preload="auto">
+        <source src="notif.mp3" type="audio/mpeg">
+    </audio>
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
@@ -130,6 +132,30 @@
         const roomsWrapper = document.getElementById('chat-rooms-wrapper');
         const myNameDisplay = document.getElementById('my-name-display');
         const vnBtn = document.getElementById('vn-btn');
+
+        // --- UNLOCK AUDIO UNTUK WEBVIEW APK ---
+        document.body.addEventListener('click', () => {
+            notifSound.play()
+                .then(() => {
+                    notifSound.pause();
+                    notifSound.currentTime = 0;
+                    console.log("Audio unlocked");
+                })
+                .catch(err => console.log(err));
+        }, { once: true });
+        
+        // --- FUNGSI SUARA NOTIF ---
+        function playNotif() {
+            notifSound.currentTime = 0;
+        
+            notifSound.play()
+                .then(() => {
+                    console.log("Notif diputer");
+                })
+                .catch(err => {
+                    console.log("Gagal muter notif:", err);
+                });
+        }
         
         const loginArea = document.getElementById('login-area');
         const loginInput = document.getElementById('login-input');
@@ -383,7 +409,9 @@
                             badge.style.display = 'inline';
                         }
                     }
-                    if(playSound) notifSound.play().catch(err => console.log("Audio active"));
+                    if(playSound) {
+                        playNotif();
+                    }
                 }
                 
                 targetRoom.appendChild(item);
