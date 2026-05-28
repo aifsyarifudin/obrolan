@@ -13,7 +13,7 @@
             background: #efeae2; box-shadow: 0 2px 5px rgba(0,0,0,0.1); position: relative;
         }
 
-        /* Sisi Kenca: Daptar Kontak/Jalma */
+        /* Sisi Kenca: Daptar Kontak */
         #sidebar {
             width: 30%; background: white; border-right: 1px solid #ddd;
             display: flex; flex-direction: column;
@@ -23,9 +23,16 @@
         #user-list li {
             padding: 12px 15px; border-bottom: 1px solid #eee; cursor: pointer;
             font-weight: 500; font-size: 14px; color: #333; transition: 0.2s;
+            display: flex; justify-content: space-between; align-items: center;
         }
         #user-list li:hover { background: #f0f2f5; }
         #user-list li.active-chat { background: #d9fdd3; color: #008069; font-weight: bold; }
+
+        /* Badge Notifikasi Angka Chat Anyar */
+        .badge-notif {
+            background-color: #25d366; color: white; font-size: 11px;
+            padding: 2px 7px; border-radius: 10px; font-weight: bold;
+        }
 
         /* Sisi Katuhu: Room Chat */
         #main-chat { width: 70%; display: flex; flex-direction: column; height: 100%; }
@@ -40,8 +47,9 @@
         #login-input { padding: 12px; width: 80%; max-width: 300px; border: 1px solid #ccc; border-radius: 20px; margin-bottom: 15px; text-align: center; font-size: 16px; outline: none; }
         #login-btn { background: #008069; color: white; border: none; padding: 10px 25px; border-radius: 20px; font-weight: bold; cursor: pointer; }
 
-        #messages { list-style-type: none; flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; }
-        #messages li { max-width: 75%; padding: 8px 12px; border-radius: 8px; font-size: 15px; line-height: 1.4; word-wrap: break-word; box-shadow: 0 1px 1px rgba(0,0,0,0.1); }
+        /* Wadah sajarah talatah (messages list) */
+        .chat-messages-holder { list-style-type: none; flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; }
+        .chat-messages-holder li { max-width: 75%; padding: 8px 12px; border-radius: 8px; font-size: 15px; line-height: 1.4; word-wrap: break-word; box-shadow: 0 1px 1px rgba(0,0,0,0.1); }
         .my-message { background-color: #d9fdd3; align-self: flex-end; border-top-right-radius: 0; }
         .other-message { background-color: #ffffff; align-self: flex-start; border-top-left-radius: 0; }
         .sender-id { font-size: 11px; font-weight: bold; color: #128c7e; margin-bottom: 2px; }
@@ -50,7 +58,6 @@
         #input { border: none; padding: 12px; flex: 1; border-radius: 20px; outline: none; font-size: 15px; background: white; }
         #form button { background: #008069; color: white; border: none; padding: 12px 20px; border-radius: 50%; cursor: pointer; }
 
-        /* Responsif kanggo HP */
         @media (max-width: 600px) {
             #sidebar { width: 35%; font-size: 12px; }
             #main-chat { width: 65%; }
@@ -69,13 +76,15 @@
 
         <div id="sidebar">
             <div class="sidebar-header">Kontak Aktip</div>
-            <ul id="user-list">
-                </ul>
+            <ul id="user-list"></ul>
         </div>
 
         <div id="main-chat">
-            <div class="header" id="chat-target-title">💬 Kirim ka: Sadaya Jalma (Broadcast)</div>
-            <ul id="messages"></ul>
+            <div class="header" id="chat-target-title">💬 Kirim ka: Sadaya Jalma</div>
+            
+            <div id="chat-rooms-wrapper" style="flex: 1; display: flex; flex-direction: column; overflow: hidden;">
+                <ul id="msg-room-Semua" class="chat-messages-holder"></ul>
+            </div>
             
             <form id="form" action="">
                 <input id="input" autocomplete="off" placeholder="Ketik pesen di dieu..." /><button>▶</button>
@@ -90,14 +99,15 @@
         const socket = io("https://obrolan-production.up.railway.app");
 
         let myId = "Anonim";
-        let targetChat = "Semua"; // Standar kirim ka sadayana
+        let targetChat = "Semua"; 
+        let unreadCounts = {}; // Nyimpen jumlah chat anyar nu can dibaca per ID
 
         const form = document.getElementById('form');
         const input = document.getElementById('input');
-        const messages = document.getElementById('messages');
         const notifSound = document.getElementById('notifSound');
         const userList = document.getElementById('user-list');
         const chatTargetTitle = document.getElementById('chat-target-title');
+        const roomsWrapper = document.getElementById('chat-rooms-wrapper');
         
         const loginArea = document.getElementById('login-area');
         const loginInput = document.getElementById('login-input');
@@ -107,28 +117,64 @@
             if(loginInput.value.trim() !== "") {
                 myId = loginInput.value.trim();
                 loginArea.style.display = 'none';
-                socket.emit('user login', myId); // Béjaan server yén urang login
+                socket.emit('user login', myId);
             } else {
                 alert("Nami teu kenging kosong nya, Kang!");
             }
         });
 
-        // Nampi daptar pangguna anyar ti server
+        // Nampilin / update daptar kontak di kenca
         socket.on('update user list', function(users) {
-            userList.innerHTML = '<li onclick="selectTarget(\'Semua\')" id="target-Semua" class="active-chat">📢 Sadaya Jalma</li>';
+            // Simpen status badge anu lami sateuacan di-render ulang
+            const oldList = userList.innerHTML;
+            
+            userList.innerHTML = `
+                <li onclick="selectTarget('Semua')" id="target-Semua" class="${targetChat === 'Semua' ? 'active-chat' : ''}">
+                    <span>📢 Sadaya Jalma</span>
+                    <span class="badge-notif" id="badge-Semua" style="display: ${unreadCounts['Semua'] ? 'inline' : 'none'}">${unreadCounts['Semua'] || 0}</span>
+                </li>`;
+            
             users.forEach(user => {
-                if(user !== myId) { // Ulah nembongkeun nami sorangan dina kontak
-                    userList.innerHTML += `<li onclick="selectTarget('${user}')" id="target-${user}">👤 ${user}</li>`;
+                if(user !== myId) {
+                    if (!document.getElementById(`msg-room-${user}`)) {
+                        // Jieunkeun kamar sajarah chat papisah di katuhu upami teu acan aya
+                        const newRoom = document.createElement('ul');
+                        newRoom.id = `msg-room-${user}`;
+                        newRoom.className = 'chat-messages-holder';
+                        newRoom.style.display = 'none';
+                        roomsWrapper.appendChild(newRoom);
+                    }
+                    
+                    let displayBadge = unreadCounts[user] ? 'inline' : 'none';
+                    userList.innerHTML += `
+                        <li onclick="selectTarget('${user}')" id="target-${user}" class="${targetChat === user ? 'active-chat' : ''}">
+                            <span>👤 ${user}</span>
+                            <span class="badge-notif" id="badge-${user}" style="display: ${displayBadge}">${unreadCounts[user] || 0}</span>
+                        </li>`;
                 }
             });
         });
 
-        // Fungsi nalika urang ngaklik salah sahiji nami dina kontak
+        // Pindah roangan chat dumasar kontak nu diklik
         function selectTarget(user) {
             targetChat = user;
+            
+            // Atur gaya warna kontak aktip
             document.querySelectorAll('#user-list li').forEach(li => li.classList.remove('active-chat'));
             document.getElementById(`target-${user}`).classList.add('active-chat');
-            chatTargetTitle.innerText = user === 'Semua' ? "💬 Kirim ka: Sadaya Jalma (Broadcast)" : `💬 Kirim ka: ${user}`;
+            
+            // Ganti judul luhur
+            chatTargetTitle.innerText = user === 'Semua' ? "💬 Kirim ka: Sadaya Jalma" : `💬 Kirim ka: ${user}`;
+            
+            // Pintonkeun roangan chatna, sumputkeun roangan sanesna
+            document.querySelectorAll('.chat-messages-holder').forEach(room => room.style.display = 'none');
+            const activeRoom = document.getElementById(`msg-room-${user}`);
+            if (activeRoom) activeRoom.style.display = 'flex';
+
+            // Hapus/nol-keun notifikasi badge angka sabab tos dibuka
+            unreadCounts[user] = 0;
+            const badge = document.getElementById(`badge-${user}`);
+            if (badge) badge.style.display = 'none';
         }
 
         form.addEventListener('submit', function(e) {
@@ -141,23 +187,42 @@
         });
 
         socket.on('chat message', function(data) {
-            // Pesen dipidangkeun upami di-broadcast (Semua) ATAWA dikirim khusus ka urang ATAWA dikirim ku urang sorangan
-            if (data.target === 'Semua' || data.target === myId || data.id === myId) {
+            // Tentukan asup ka roangan mana pesen ieu
+            let roomName = "";
+            if (data.target === 'Semua') {
+                roomName = "Semua";
+            } else if (data.id === myId) {
+                roomName = data.target; // Pesen urang sorangan asup ka room udin/dadan
+            } else if (data.target === myId) {
+                roomName = data.id; // Pesen ti batur asup ka room si pangirim
+            }
+
+            // Upami kamar chatna kapendak, masangkeun pesenna di jero
+            const targetRoom = document.getElementById(`msg-room-${roomName}`);
+            if (targetRoom) {
                 const item = document.createElement('li');
-                
                 if (data.id === myId) {
                     item.className = 'my-message';
-                    let labelTujuan = data.target !== 'Semua' ? `<div style="font-size:10px; color:#aaa; margin-bottom:2px;">Bisik-bisik ka ${data.target}</div>` : '';
-                    item.innerHTML = `${labelTujuan}<div>${data.message}</div>`;
+                    item.innerHTML = `<div>${data.message}</div>`;
                 } else {
                     item.className = 'other-message';
-                    let labelJenis = data.target !== 'Semua' ? ' (Bisik-bisik)' : '';
-                    item.innerHTML = `<div class="sender-id">${data.id}${labelJenis}</div><div>${data.message}</div>`;
-                    notifSound.play().catch(err => console.log("Sora aktip"));
+                    item.innerHTML = `<div class="sender-id">${data.id}</div><div>${data.message}</div>`;
+                    
+                    // --- FITUR NOTIFIKASI ANGKA ---
+                    // Upami chat asup ti batur lain dina room anu nuju dibuka ayeuna
+                    if (roomName !== targetChat) {
+                        unreadCounts[roomName] = (unreadCounts[roomName] || 0) + 1;
+                        const badge = document.getElementById(`badge-${roomName}`);
+                        if (badge) {
+                            badge.innerText = unreadCounts[roomName];
+                            badge.style.display = 'inline';
+                        }
+                    }
+                    notifSound.play().catch(err => console.log("Sora hurung"));
                 }
                 
-                messages.appendChild(item);
-                messages.scrollTop = messages.scrollHeight;
+                targetRoom.appendChild(item);
+                targetRoom.scrollTop = targetRoom.scrollHeight;
             }
         });
     </script>
