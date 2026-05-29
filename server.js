@@ -33,49 +33,68 @@ io.on('connection', (socket) => {
     // PESAN ASUP
     socket.on('chat message', (data) => {
 
-        try {
+    try {
 
-            const messageId =
-                Date.now() +
-                '-' +
-                Math.random().toString(36).substr(2, 9);
+        const messageId =
+            data.msgId ||
+            Date.now() +
+            '-' +
+            Math.random().toString(36).substr(2, 9);
 
-            const newMessage = {
+        const newMessage = {
 
-                msgId: messageId,
+            msgId: messageId,
 
-                sender: data.id,
+            sender: data.id,
 
-                target: data.target,
+            target: data.target,
 
-                message: data.message || '',
+            message: data.message || '',
 
-                msgType: data.msgType || 'text',
+            msgType: data.msgType || 'text',
 
-                fileName: data.fileName || '',
+            fileName: data.fileName || '',
 
-                isDeleted: false,
+            isDeleted: false,
 
-                createdAt: new Date()
+            createdAt: new Date()
 
-            };
+        };
 
-            chatHistory.push(newMessage);
+        chatHistory.push(newMessage);
 
-            // batas riwayat
-            if (chatHistory.length > 200) {
-                chatHistory.shift();
-            }
-
-            io.emit('chat message', newMessage);
-
-        }
-        catch (err) {
-
-            console.log('ERROR CHAT:', err);
-
+        // batas riwayat
+        if (chatHistory.length > 200) {
+            chatHistory.shift();
         }
 
+        // kirim pesan
+        io.emit('chat message', newMessage);
+
+        // ✔ terkirim
+        io.emit('message delivered', messageId);
+
+    }
+    catch (err) {
+
+        console.log('ERROR CHAT:', err);
+
+    }
+
+});
+
+    // ✔✔ dibaca
+    socket.on('chat seen', (data) => {
+    
+        io.emit('message seen', data.target);
+    
+    });
+
+    // ✍️ keur nulis
+    socket.on('typing', (data) => {
+    
+        io.emit('typing', data);
+    
     });
 
     // HAPUS PESAN
