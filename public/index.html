@@ -125,7 +125,7 @@
 
         let myId = "Anonim";
         let targetChat = "Semua"; 
-        let unreadCounts = {};
+        let unreadCounts = {}; // Tetep dikonci sacara global
     
         const container = document.getElementById('chat-container');
         const form = document.getElementById('form');
@@ -150,22 +150,21 @@
         
         // --- FUNGSI SUARA NOTIF ---
         function playNotif() {
-        // Mastikeun variabel notifSound tos aya sareng teu kosong
-        if (notifSound) {
-            notifSound.currentTime = 0; // Reset durasi ka awal supados sora tiasa silih tumpang (gercep)
-        
-            notifSound.play()
-                .then(() => {
-                    console.log("Notif diputer");
-                })
-                .catch(err => {
-                    // Ieu bakal nangkep upami browser nga-block sora (kabijakan Autoplay Browser)
-                    console.log("Gagal muter notif (kedah klik layar heula):", err);
-                });
-        } else {
-            console.log("Elemen notifSound teu kapendak dina HTML");
+            if (notifSound) {
+                notifSound.pause(); 
+                notifSound.currentTime = 0; 
+            
+                notifSound.play()
+                    .then(() => {
+                        console.log("Notif diputer");
+                    })
+                    .catch(err => {
+                        console.log("Gagal muter notif:", err);
+                    });
+            } else {
+                console.log("Elemen notifSound teu kapendak");
+            }
         }
-    }
         
         const loginArea = document.getElementById('login-area');
         const loginInput = document.getElementById('login-input');
@@ -204,7 +203,6 @@
             const file = inputElement.files[0];
             if (!file) return;
 
-            // Watesan ukuran file ulah langkung ti 4MB supados jaringan lancar
             if (file.size > 4 * 1024 * 1024) {
                 alert("Ukuran file ageung teuing, Kang! Maksimal 4MB waé nya.");
                 return;
@@ -218,14 +216,14 @@
                 const data = {
                     id: myId,
                     target: targetChat,
-                    message: e.target.result, // Data Base64 file
+                    message: e.target.result, 
                     msgType: msgType,
                     fileName: file.name
                 };
                 socket.emit('chat message', data);
             };
             reader.readAsDataURL(file);
-            inputElement.value = ''; // Reset inputan file
+            inputElement.value = ''; 
         }
 
         // --- PROSES VOICE NOTE (REKAMAN SORA) ---
@@ -235,106 +233,53 @@
         let currentStream = null;
         
         async function toggleVoiceRecord() {
-        
-            // MULAI REKAM
             if (!isRecording) {
-        
                 try {
-        
-                    currentStream = await navigator.mediaDevices.getUserMedia({
-                        audio: true
-                    });
-        
+                    currentStream = await navigator.mediaDevices.getUserMedia({ audio: true });
                     audioChunks = [];
-        
                     mediaRecorder = new MediaRecorder(currentStream);
-        
                     mediaRecorder.ondataavailable = (event) => {
-        
                         if (event.data.size > 0) {
                             audioChunks.push(event.data);
                         }
-        
                     };
-        
                     mediaRecorder.onstop = () => {
-        
                         if (audioChunks.length === 0) {
                             alert("Voice note gagal direkam");
                             return;
                         }
-        
-                        const audioBlob = new Blob(audioChunks, {
-                            type: 'audio/webm'
-                        });
-        
+                        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
                         const reader = new FileReader();
-        
                         reader.onloadend = () => {
-        
                             socket.emit('chat message', {
                                 id: myId,
                                 target: targetChat,
                                 message: reader.result,
                                 msgType: 'audio'
                             });
-        
                         };
-        
                         reader.readAsDataURL(audioBlob);
-        
                         currentStream.getTracks().forEach(track => track.stop());
-        
                     };
-        
                     mediaRecorder.start();
-        
                     isRecording = true;
-        
                     vnBtn.classList.add('recording-active');
-        
                     vnBtn.innerText = '⏹';
-        
+                } catch (err) {
+                    alert("Mikrofon gagal diakses.\n\n" + err.message);
                 }
-                catch (err) {
-
-                    console.log("DETAIL ERROR:", err.name);
-                    console.log("DETAIL ERROR:", err.message);
-                
-                    alert(
-                        "Mikrofon gagal diakses.\n\n" +
-                        err.message
-                    );
-                
-                }
-        
-            }
-        
-            // STOP REKAM
-            else {
-        
+            } else {
                 mediaRecorder.stop();
-        
                 isRecording = false;
-        
                 vnBtn.classList.remove('recording-active');
-        
                 vnBtn.innerText = '🎙️';
-        
             }
-        
         }
 
         input.addEventListener('input', function() {
-
-            socket.emit('typing', {
-                from: myId,
-                to: targetChat
-            });
-        
+            socket.emit('typing', { from: myId, to: targetChat });
             this.style.height = 'auto';
             this.style.height = (this.scrollHeight) + 'px';
-        
         });
 
         input.addEventListener('keydown', function(e) {
@@ -344,89 +289,57 @@
             }
         });
 
+        // 🔥 PERBAIKAN: Supados angka notif lami teu keuna ku reset innerHTML
         socket.on('update user list', function(users) {
-
-                // 🔥 ambil daftar user lama
-                let savedUsers =
-                    JSON.parse(localStorage.getItem('all_chat_users')) || [];
-            
-                // tambah user baru lamun can aya
-                users.forEach(user => {
-            
-                    if (
-                        user !== myId &&
-                        !savedUsers.includes(user)
-                    ) {
-                        savedUsers.push(user);
-                    }
-            
-                });
-            
-                // simpen deui
-                localStorage.setItem(
-                    'all_chat_users',
-                    JSON.stringify(savedUsers)
-                );
-            
-                // reset tampilan
-                userList.innerHTML = `
-                    <li onclick="selectTarget('Semua')"
-                        id="target-Semua"
-                        class="${targetChat === 'Semua' ? 'active-chat' : ''}">
-                        
-                        <span>📢 Sadaya Jalmi (Broadcast)</span>
-            
-                        <span class="badge-notif"
-                            id="badge-Semua"
-                            style="display: ${unreadCounts['Semua'] ? 'inline' : 'none'}">
-            
-                            ${unreadCounts['Semua'] || 0}
-            
-                        </span>
-                    </li>
-                `;
-            
-                // 🔥 tampilkan semua user yg pernah login
-                savedUsers.forEach(user => {
-            
-                    if(user !== myId) {
-            
-                        checkAndCreateRoom(user);
-            
-                        let displayBadge =
-                            unreadCounts[user] ? 'inline' : 'none';
-            
-                        // cek online/offline
-                        const isOnline = users.includes(user);
-            
-                        const statusIcon =
-                            isOnline
-                            ? '🟢 Online'
-                            : '⚫ Offline';
-            
-                        userList.innerHTML += `
-                            <li onclick="selectTarget('${user}')"
-                                id="target-${user}"
-                                class="${targetChat === user ? 'active-chat' : ''}">
-                                
-                                <span>
-                                    ${statusIcon} 👤 ${user}
-                                </span>
-            
-                                <span class="badge-notif"
-                                    id="badge-${user}"
-                                    style="display: ${displayBadge}">
-                                    
-                                    ${unreadCounts[user] || 0}
-                                
-                                </span>
-            
-                            </li>
-                        `;
-                    }
-            
-                });
-            
+            let savedUsers = JSON.parse(localStorage.getItem('all_chat_users')) || [];
+        
+            users.forEach(user => {
+                if (user !== myId && !savedUsers.includes(user)) {
+                    savedUsers.push(user);
+                }
+            });
+        
+            localStorage.setItem('all_chat_users', JSON.stringify(savedUsers));
+        
+            // Set up daptar broadcast 'Semua'
+            let countSemua = unreadCounts['Semua'] || 0;
+            userList.innerHTML = `
+                <li onclick="selectTarget('Semua')"
+                    id="target-Semua"
+                    class="${targetChat === 'Semua' ? 'active-chat' : ''}">
+                    <span>📢 Sadaya Jalmi (Broadcast)</span>
+                    <span class="badge-notif"
+                        id="badge-Semua"
+                        style="display: ${countSemua > 0 ? 'inline' : 'none'}">
+                        ${countSemua}
+                    </span>
+                </li>
+            `;
+        
+            // Tampilkeun pangguna lain
+            savedUsers.forEach(user => {
+                if(user !== myId) {
+                    checkAndCreateRoom(user);
+        
+                    let countUser = unreadCounts[user] || 0;
+                    let displayBadge = countUser > 0 ? 'inline' : 'none';
+                    const isOnline = users.includes(user);
+                    const statusIcon = isOnline ? '🟢 Online' : '⚫ Offline';
+        
+                    userList.innerHTML += `
+                        <li onclick="selectTarget('${user}')"
+                            id="target-${user}"
+                            class="${targetChat === user ? 'active-chat' : ''}">
+                            <span>${statusIcon} 👤 ${user}</span>
+                            <span class="badge-notif"
+                                id="badge-${user}"
+                                style="display: ${displayBadge}">
+                                ${countUser}
+                            </span>
+                        </li>
+                    `;
+                }
+            });
         });
 
         function checkAndCreateRoom(user) {
@@ -445,6 +358,7 @@
             });
         });
 
+        // 🔥 PERBAIKAN: Fungsi selectTarget dirobih tegas kanggo mupus badgenya
         function selectTarget(user) {
             targetChat = user;
             container.classList.add('in-room'); 
@@ -459,9 +373,13 @@
             const activeRoom = document.getElementById(`msg-room-${user}`);
             if (activeRoom) activeRoom.style.display = 'flex';
 
+            // Reset total angka notif sangkan aman sacara global
             unreadCounts[user] = 0;
             const badge = document.getElementById(`badge-${user}`);
-            if (badge) badge.style.display = 'none';
+            if (badge) {
+                badge.innerText = '0';
+                badge.style.display = 'none';
+            }
             
             setTimeout(() => { if(activeRoom) activeRoom.scrollTop = activeRoom.scrollHeight; }, 100);
 
@@ -479,18 +397,11 @@
             e.preventDefault();
             if (input.value.trim()) {
                 const data = {
-
-                    msgId:
-                        Date.now() + '_' + myId,
-                
+                    msgId: Date.now() + '_' + myId,
                     id: myId,
-                
                     target: targetChat,
-                
                     message: input.value,
-                
                     msgType: 'text'
-                
                 };
                 socket.emit('chat message', data);
                 input.value = '';
@@ -503,33 +414,22 @@
         });
 
         socket.on('message delivered', function(msgId){
-
-            const statusEl =
-                document.querySelector(`.status-${msgId}`);
-        
+            const statusEl = document.querySelector(`.status-${msgId}`);
             if(statusEl){
                 statusEl.innerHTML = '✔';
             }
-        
         });
 
         socket.on('message seen', function(msgId){
-
-            const statusEl =
-                document.querySelector(`.status-${msgId}`);
-        
+            const statusEl = document.querySelector(`.status-${msgId}`);
             if(statusEl){
-        
                 statusEl.innerHTML = '✔✔';
                 statusEl.style.color = '#53bdeb';
-        
             }
-        
         });
 
         socket.on('typing', function(data){
             if(data.from === targetChat){
-                // Menampilkan teks "keur nulis..." jika lawan bicara sedang mengetik
                 chatTargetTitle.innerHTML = targetChat === 'Semua' ? `📢 Broadcast <small style="font-size:12px;">(${data.from} keur nulis...)</small>` : `👤 ${data.from} <small style="font-size:12px;">keur nulis...</small>`;
                 
                 clearTimeout(window.typingTimer);
@@ -558,78 +458,76 @@
         }
 
         function appendMessageToRoom(data, playSound) {
-    let roomName = "";
-    
-    // 1. Pengecekan room dumasar data.id (ID Pengirim)
-    if (data.target === 'Semua') {
-        roomName = "Semua";
-    } else if (data.id === myId) {
-        roomName = data.target;
-    } else if (data.target === myId) {
-        roomName = data.id; 
-    }
-
-    checkAndCreateRoom(roomName);
-    const targetRoom = document.getElementById(`msg-room-${roomName}`);
-    
-    if (targetRoom) {
-        const item = document.createElement('li');
-        item.id = `msg-${data.msgId}`;
-        
-        let renderContent = '';
-        if (data.isDeleted) {
-            renderContent = `<span class="deleted-text">${data.message}</span>`;
-        } else if (data.msgType === 'image') {
-            renderContent = `<img src="${data.message}" class="chat-img" onclick="window.open(this.src)">`;
-        } else if (data.msgType === 'audio') {
-            renderContent = `<audio controls><source src="${data.message}" type="audio/webm"></audio>`;
-        } else if (data.msgType === 'file') {
-            renderContent = `<a href="${data.message}" download="${data.fileName}" class="chat-file-link">📂 ${data.fileName}</a>`;
-        } else {
-            renderContent = data.message;
-        }
-
-        // Kondisi 2: Upami ieu pesan urang sorangan
-        if (data.id === myId) { 
-            item.className = 'my-message';
-            let deleteButton = data.isDeleted ? '' : `<button class="del-btn" onclick="requestDeleteMessage('${data.msgId}')">🗑️</button>`;
-            item.innerHTML = `
-                <div class="text-content"> ${renderContent} </div>
-                <div class="msg-status status-${data.msgId}" style="font-size:11px; text-align:right; margin-top:3px; color:#667781;"> ⏳ </div>
-                ${deleteButton}
-            `;
-        } else {
-            // Kondisi 3: Upami pesan ti batur (Balesan chat)
-            item.className = 'other-message';
-            item.innerHTML = roomName === 'Semua' ? `<div class="sender-id">${data.id}</div> <div class="text-content">${renderContent}</div>` : `<div class="text-content">${renderContent}</div>`;
+            let roomName = "";
             
-            const isPrivateForMe = data.target === myId;
-            const isBroadcast = data.target === 'Semua';
-            const notActiveChat = roomName !== targetChat; // lereskeun status room keur dibuka atawa henteu
+            if (data.target === 'Semua') {
+                roomName = "Semua";
+            } else if (data.id === myId) {
+                roomName = data.target;
+            } else if (data.target === myId) {
+                roomName = data.id; 
+            }
+
+            if (!roomName) return; 
+
+            checkAndCreateRoom(roomName);
+            const targetRoom = document.getElementById(`msg-room-${roomName}`);
             
-            // 🔥 LOGIKA SORA NOTIFIKASI DIANYARKAN
-            if (playSound && data.id !== myId && (isPrivateForMe || isBroadcast)) {
+            if (targetRoom) {
+                const item = document.createElement('li');
+                item.id = `msg-${data.msgId}`;
                 
-                if (notActiveChat) {
-                    // Upami jalmina nuju di room sejen, tambahkeun angka notif ijo sarta asupkeun sora
-                    unreadCounts[roomName] = (unreadCounts[roomName] || 0) + 1;
-                    const badge = document.getElementById(`badge-${roomName}`);
-                    if (badge) {
-                        badge.innerText = unreadCounts[roomName];
-                        badge.style.display = 'inline';
-                    }
-                    playNotif(); // Sora disada upami room nuju ditutup
+                let renderContent = '';
+                if (data.isDeleted) {
+                    renderContent = `<span class="deleted-text">${data.message}</span>`;
+                } else if (data.msgType === 'image') {
+                    renderContent = `<img src="${data.message}" class="chat-img" onclick="window.open(this.src)">`;
+                } else if (data.msgType === 'audio') {
+                    renderContent = `<audio controls><source src="${data.message}" type="audio/webm"></audio>`;
+                } else if (data.msgType === 'file') {
+                    renderContent = `<a href="${data.message}" download="${data.fileName}" class="chat-file-link">📂 ${data.fileName}</a>`;
                 } else {
-                    // 💡 IEU SOLUSINA: Sanajan roomna nuju dibuka (nuju silih bales),
-                    // sora notif tetep bakal disada ayeuna mah tanpa nambihan angka badge ijo.
-                    playNotif(); 
+                    renderContent = data.message;
                 }
+
+                if (data.id === myId) { 
+                    item.className = 'my-message';
+                    let deleteButton = data.isDeleted ? '' : `<button class="del-btn" onclick="requestDeleteMessage('${data.msgId}')">🗑️</button>`;
+                    item.innerHTML = `
+                        <div class="text-content"> ${renderContent} </div>
+                        <div class="msg-status status-${data.msgId}" style="font-size:11px; text-align:right; margin-top:3px; color:#667781;"> ⏳ </div>
+                        ${deleteButton}
+                    `;
+                } else {
+                    item.className = 'other-message';
+                    item.innerHTML = roomName === 'Semua' ? `<div class="sender-id">${data.id}</div> <div class="text-content">${renderContent}</div>` : `<div class="text-content">${renderContent}</div>`;
+                    
+                    const isPrivateForMe = data.target === myId;
+                    const isBroadcast = data.target === 'Semua';
+                    const notActiveChat = roomName !== targetChat; 
+                    
+                    if (playSound && data.id !== myId && (isPrivateForMe || isBroadcast)) {
+                        if (notActiveChat) {
+                            if (typeof unreadCounts[roomName] !== 'number') {
+                                unreadCounts[roomName] = 0;
+                            }
+                            unreadCounts[roomName] += 1;
+
+                            const badge = document.getElementById(`badge-${roomName}`);
+                            if (badge) {
+                                badge.innerText = unreadCounts[roomName];
+                                badge.style.display = 'inline';
+                            }
+                            playNotif(); 
+                        } else {
+                            playNotif(); 
+                        }
+                    }
+                }
+                targetRoom.appendChild(item);
+                targetRoom.scrollTop = targetRoom.scrollHeight;
             }
         }
-        targetRoom.appendChild(item);
-        targetRoom.scrollTop = targetRoom.scrollHeight;
-    }
-}
     </script>
 
     <script>
