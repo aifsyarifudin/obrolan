@@ -332,6 +332,87 @@
         });
 
         socket.on('update user list', function(users) {
+
+                // 🔥 ambil daftar user lama
+                let savedUsers =
+                    JSON.parse(localStorage.getItem('all_chat_users')) || [];
+            
+                // tambah user baru lamun can aya
+                users.forEach(user => {
+            
+                    if (
+                        user !== myId &&
+                        !savedUsers.includes(user)
+                    ) {
+                        savedUsers.push(user);
+                    }
+            
+                });
+            
+                // simpen deui
+                localStorage.setItem(
+                    'all_chat_users',
+                    JSON.stringify(savedUsers)
+                );
+            
+                // reset tampilan
+                userList.innerHTML = `
+                    <li onclick="selectTarget('Semua')"
+                        id="target-Semua"
+                        class="${targetChat === 'Semua' ? 'active-chat' : ''}">
+                        
+                        <span>📢 Sadaya Jalmi (Broadcast)</span>
+            
+                        <span class="badge-notif"
+                            id="badge-Semua"
+                            style="display: ${unreadCounts['Semua'] ? 'inline' : 'none'}">
+            
+                            ${unreadCounts['Semua'] || 0}
+            
+                        </span>
+                    </li>
+                `;
+            
+                // 🔥 tampilkan semua user yg pernah login
+                savedUsers.forEach(user => {
+            
+                    if(user !== myId) {
+            
+                        checkAndCreateRoom(user);
+            
+                        let displayBadge =
+                            unreadCounts[user] ? 'inline' : 'none';
+            
+                        // cek online/offline
+                        const isOnline = users.includes(user);
+            
+                        const statusIcon =
+                            isOnline ? '🟢' : '⚫';
+            
+                        userList.innerHTML += `
+                            <li onclick="selectTarget('${user}')"
+                                id="target-${user}"
+                                class="${targetChat === user ? 'active-chat' : ''}">
+                                
+                                <span>
+                                    ${statusIcon} 👤 ${user}
+                                </span>
+            
+                                <span class="badge-notif"
+                                    id="badge-${user}"
+                                    style="display: ${displayBadge}">
+                                    
+                                    ${unreadCounts[user] || 0}
+                                
+                                </span>
+            
+                            </li>
+                        `;
+                    }
+            
+                });
+            
+            });
             userList.innerHTML = `
                 <li onclick="selectTarget('Semua')" id="target-Semua" class="${targetChat === 'Semua' ? 'active-chat' : ''}">
                     <span>📢 Sadaya Jalmi (Broadcast)</span>
