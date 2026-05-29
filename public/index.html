@@ -472,7 +472,20 @@
         form.addEventListener('submit', function(e) {
             e.preventDefault();
             if (input.value.trim()) {
-                const data = { id: myId, target: targetChat, message: input.value, msgType: 'text' };
+                const data = {
+
+                    msgId:
+                        Date.now() + '_' + myId,
+                
+                    id: myId,
+                
+                    target: targetChat,
+                
+                    message: input.value,
+                
+                    msgType: 'text'
+                
+                };
                 socket.emit('chat message', data);
                 input.value = '';
                 input.style.height = '40px';
