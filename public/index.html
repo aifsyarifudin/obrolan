@@ -290,6 +290,7 @@
         });
 
         // 🔥 PERBAIKAN: Supados angka notif lami teu keuna ku reset innerHTML
+        // 🔥 PERBAIKAN TOTAL: Supados badge/tanda pesan baru tetep muncul sareng teu leungit
         socket.on('update user list', function(users) {
             let savedUsers = JSON.parse(localStorage.getItem('all_chat_users')) || [];
         
@@ -301,7 +302,7 @@
         
             localStorage.setItem('all_chat_users', JSON.stringify(savedUsers));
         
-            // Set up daptar broadcast 'Semua'
+            // 1. Tampilkan room 'Semua' (Broadcast)
             let countSemua = unreadCounts['Semua'] || 0;
             userList.innerHTML = `
                 <li onclick="selectTarget('Semua')"
@@ -310,19 +311,20 @@
                     <span>📢 Sadaya Jalmi (Broadcast)</span>
                     <span class="badge-notif"
                         id="badge-Semua"
-                        style="display: ${countSemua > 0 ? 'inline' : 'none'}">
+                        style="display: ${countSemua > 0 ? 'inline-block' : 'none'}">
                         ${countSemua}
                     </span>
                 </li>
             `;
         
-            // Tampilkeun pangguna lain
+            // 2. Tampilkan daptar pangguna lianna
             savedUsers.forEach(user => {
                 if(user !== myId) {
                     checkAndCreateRoom(user);
         
                     let countUser = unreadCounts[user] || 0;
-                    let displayBadge = countUser > 0 ? 'inline' : 'none';
+                    // 🔥 KONCI UTAMA: Mastikeun display ngagunakeun 'inline-block' sangkan merenah katingal
+                    let displayBadge = countUser > 0 ? 'inline-block' : 'none'; 
                     const isOnline = users.includes(user);
                     const statusIcon = isOnline ? '🟢 Online' : '⚫ Offline';
         
