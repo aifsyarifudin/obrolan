@@ -553,13 +553,14 @@
 
         function appendMessageToRoom(data, playSound) {
             let roomName = "";
-            // Mengubah data.sender menjadi data.id sesuai payload yang dikirim saat submit form
+            
+            // 1. Pengecekan room nganggo data.id (ID Pengirim)
             if (data.target === 'Semua') {
                 roomName = "Semua";
-            } else if (data.id === myId) { 
+            } else if (data.id === myId) {
                 roomName = data.target;
             } else if (data.target === myId) {
-                roomName = data.id; // data.id adalah ID pengirim
+                roomName = data.id; 
             }
         
             checkAndCreateRoom(roomName);
@@ -569,35 +570,21 @@
                 const item = document.createElement('li');
                 item.id = `msg-${data.msgId}`;
                 
-                // Milih tampilan dumasar jinis pesen (Teks, Gambar, File, atawa Audio)
                 let renderContent = '';
-                if(data.isDeleted) {
-
+                if (data.isDeleted) {
                     renderContent = `<span class="deleted-text">${data.message}</span>`;
-                
-                } else if(data.msgType === 'image') {
-                
+                } else if (data.msgType === 'image') {
                     renderContent = `<img src="${data.message}" class="chat-img" onclick="window.open(this.src)">`;
-                
-                } else if(data.msgType === 'audio') {
-
-                    renderContent = `
-                    <audio controls>
-                        <source src="${data.message}" type="audio/webm">
-                    </audio>
-                    `;
-                
-                } else if(data.msgType === 'file') {
-                
+                } else if (data.msgType === 'audio') {
+                    renderContent = `<audio controls><source src="${data.message}" type="audio/webm"></audio>`;
+                } else if (data.msgType === 'file') {
                     renderContent = `<a href="${data.message}" download="${data.fileName}" class="chat-file-link">📂 ${data.fileName}</a>`;
-                
                 } else {
-                
                     renderContent = data.message;
-                
                 }
-
-                if (data.id === myId) { // Mengubah data.sender menjadi data.id
+        
+                // 2. Ganti data.sender janten data.id supados pesan urang sorangan tiasa muncul
+                if (data.id === myId) { 
                     item.className = 'my-message';
                     let deleteButton = data.isDeleted ? '' : `<button class="del-btn" onclick="requestDeleteMessage('${data.msgId}')">🗑️</button>`;
                     item.innerHTML = `
@@ -606,10 +593,11 @@
                         ${deleteButton}
                     `;
                 } else {
+                    // Pesan ti batur
                     item.className = 'other-message';
                     item.innerHTML = roomName === 'Semua' ? `<div class="sender-id">${data.id}</div> <div class="text-content">${renderContent}</div>` : `<div class="text-content">${renderContent}</div>`;
                     
-                    // 🔥 Notifikasi aktif kembali jika ID pengirim bukan ID kita sendiri
+                    // 3. Ganti data.sender janten data.id supados Angka Notif Chat Baru sareng Suara tiasa jalan singkron
                     const isPrivateForMe = data.target === myId;
                     const isBroadcast = data.target === 'Semua';
                     const notActiveChat = roomName !== targetChat;
@@ -620,7 +608,7 @@
                             const badge = document.getElementById(`badge-${roomName}`);
                             if (badge) {
                                 badge.innerText = unreadCounts[roomName];
-                                badge.style.display = 'inline';
+                                badge.style.display = 'inline'; // Angka notif bakal muncul ayeuna mah
                             }
                         }
                         if (notActiveChat) {
