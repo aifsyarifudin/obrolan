@@ -522,23 +522,15 @@
         });
 
         socket.on('typing', function(data){
-
             if(data.from === targetChat){
-        
-                chatTargetTitle.innerHTML =
-                    `👤 ${data.from} <small style="font-size:12px;">keur nulis...</small>`;
-        
+                // Menampilkan teks "keur nulis..." jika lawan bicara sedang mengetik
+                chatTargetTitle.innerHTML = targetChat === 'Semua' ? `📢 Broadcast <small style="font-size:12px;">(${data.from} keur nulis...)</small>` : `👤 ${data.from} <small style="font-size:12px;">keur nulis...</small>`;
+                
                 clearTimeout(window.typingTimer);
-        
                 window.typingTimer = setTimeout(() => {
-        
-                    chatTargetTitle.innerHTML =
-                        `👤 ${data.from}`;
-        
+                    chatTargetTitle.innerHTML = targetChat === 'Semua' ? "📢 Sadaya Jalmi (Broadcast)" : `👤 ${data.from}`;
                 }, 1500);
-        
             }
-        
         });
 
         socket.on('message deleted', function(msgId) {
@@ -561,14 +553,15 @@
 
         function appendMessageToRoom(data, playSound) {
             let roomName = "";
+            // Mengubah data.sender menjadi data.id sesuai payload yang dikirim saat submit form
             if (data.target === 'Semua') {
                 roomName = "Semua";
-            } else if (data.sender === myId) {
+            } else if (data.id === myId) { 
                 roomName = data.target;
             } else if (data.target === myId) {
-                roomName = data.sender;
+                roomName = data.id; // data.id adalah ID pengirim
             }
-
+        
             checkAndCreateRoom(roomName);
             const targetRoom = document.getElementById(`msg-room-${roomName}`);
             
@@ -604,92 +597,37 @@
                 
                 }
 
-                if (data.sender === myId) {
-
+                if (data.id === myId) { // Mengubah data.sender menjadi data.id
                     item.className = 'my-message';
-                
-                    let deleteButton =
-                        data.isDeleted
-                        ? ''
-                        : `<button class="del-btn"
-                            onclick="requestDeleteMessage('${data.msgId}')">🗑️</button>`;
-                
-                    item.innerHTML =
-                        `
-                        <div class="text-content">
-                            ${renderContent}
-                        </div>
-                        
-                        <div class="msg-status status-${data.msgId}"
-                             style="
-                                font-size:11px;
-                                text-align:right;
-                                margin-top:3px;
-                                color:#667781;
-                             ">
-                             
-                             ⏳
-                        
-                        </div>
-                        
+                    let deleteButton = data.isDeleted ? '' : `<button class="del-btn" onclick="requestDeleteMessage('${data.msgId}')">🗑️</button>`;
+                    item.innerHTML = `
+                        <div class="text-content"> ${renderContent} </div>
+                        <div class="msg-status status-${data.msgId}" style="font-size:11px; text-align:right; margin-top:3px; color:#667781;"> ⏳ </div>
                         ${deleteButton}
-                        `;
-                
+                    `;
                 } else {
-                
                     item.className = 'other-message';
-                
-                    item.innerHTML =
-                        roomName === 'Semua'
-                        ? `<div class="sender-id">${data.sender}</div>
-                           <div class="text-content">${renderContent}</div>`
-                        : `<div class="text-content">${renderContent}</div>`;
-                
-                    // 🔥 notif hanya untuk penerima
-                    const isPrivateForMe =
-                        data.target === myId;
-                
-                    const isBroadcast =
-                        data.target === 'Semua';
-                
-                    const notActiveChat =
-                        roomName !== targetChat;
-                
-                    if (
-                        playSound &&
-                        data.sender !== myId &&
-                        (isPrivateForMe || isBroadcast)
-                    ) {
-                
-                        // badge unread
+                    item.innerHTML = roomName === 'Semua' ? `<div class="sender-id">${data.id}</div> <div class="text-content">${renderContent}</div>` : `<div class="text-content">${renderContent}</div>`;
+                    
+                    // 🔥 Notifikasi aktif kembali jika ID pengirim bukan ID kita sendiri
+                    const isPrivateForMe = data.target === myId;
+                    const isBroadcast = data.target === 'Semua';
+                    const notActiveChat = roomName !== targetChat;
+                    
+                    if (playSound && data.id !== myId && (isPrivateForMe || isBroadcast)) {
                         if (notActiveChat) {
-                
-                            unreadCounts[roomName] =
-                                (unreadCounts[roomName] || 0) + 1;
-                
-                            const badge =
-                                document.getElementById(`badge-${roomName}`);
-                
+                            unreadCounts[roomName] = (unreadCounts[roomName] || 0) + 1;
+                            const badge = document.getElementById(`badge-${roomName}`);
                             if (badge) {
-                
-                                badge.innerText =
-                                    unreadCounts[roomName];
-                
+                                badge.innerText = unreadCounts[roomName];
                                 badge.style.display = 'inline';
-                
                             }
-                
                         }
-                
-                        // 🔊 suara notif
                         if (notActiveChat) {
                             playNotif();
                         }
-                
                     }
-                
                 }
-                
                 targetRoom.appendChild(item);
                 targetRoom.scrollTop = targetRoom.scrollHeight;
             }
