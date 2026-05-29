@@ -320,8 +320,15 @@
         }
 
         input.addEventListener('input', function() {
+
+            socket.emit('typing', {
+                from: myId,
+                to: targetChat
+            });
+        
             this.style.height = 'auto';
             this.style.height = (this.scrollHeight) + 'px';
+        
         });
 
         input.addEventListener('keydown', function(e) {
@@ -387,7 +394,9 @@
                         const isOnline = users.includes(user);
             
                         const statusIcon =
-                            isOnline ? '🟢' : '⚫';
+                            isOnline
+                            ? '🟢 Online'
+                            : '⚫ Offline';
             
                         userList.innerHTML += `
                             <li onclick="selectTarget('${user}')"
@@ -449,6 +458,11 @@
             if (badge) badge.style.display = 'none';
             
             setTimeout(() => { if(activeRoom) activeRoom.scrollTop = activeRoom.scrollHeight; }, 100);
+
+            socket.emit('chat seen', {
+                reader: myId,
+                target: user
+            });
         }
 
         function backToContacts() {
@@ -467,6 +481,51 @@
 
         socket.on('chat message', function(data) {
             appendMessageToRoom(data, true);
+        });
+
+        socket.on('message delivered', function(msgId){
+
+            const statusEl =
+                document.querySelector(`.status-${msgId}`);
+        
+            if(statusEl){
+                statusEl.innerHTML = '✔';
+            }
+        
+        });
+
+        socket.on('message seen', function(msgId){
+
+            const statusEl =
+                document.querySelector(`.status-${msgId}`);
+        
+            if(statusEl){
+        
+                statusEl.innerHTML = '✔✔';
+                statusEl.style.color = '#53bdeb';
+        
+            }
+        
+        });
+
+        socket.on('typing', function(data){
+
+            if(data.from === targetChat){
+        
+                chatTargetTitle.innerHTML =
+                    `👤 ${data.from} <small style="font-size:12px;">keur nulis...</small>`;
+        
+                clearTimeout(window.typingTimer);
+        
+                window.typingTimer = setTimeout(() => {
+        
+                    chatTargetTitle.innerHTML =
+                        `👤 ${data.from}`;
+        
+                }, 1500);
+        
+            }
+        
         });
 
         socket.on('message deleted', function(msgId) {
@@ -543,7 +602,25 @@
                             onclick="requestDeleteMessage('${data.msgId}')">🗑️</button>`;
                 
                     item.innerHTML =
-                        `<div class="text-content">${renderContent}</div>${deleteButton}`;
+                        `
+                        <div class="text-content">
+                            ${renderContent}
+                        </div>
+                        
+                        <div class="msg-status status-${data.msgId}"
+                             style="
+                                font-size:11px;
+                                text-align:right;
+                                margin-top:3px;
+                                color:#667781;
+                             ">
+                             
+                             ⏳
+                        
+                        </div>
+                        
+                        ${deleteButton}
+                        `;
                 
                 } else {
                 
