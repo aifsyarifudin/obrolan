@@ -412,23 +412,6 @@
             
                 });
             
-            userList.innerHTML = `
-                <li onclick="selectTarget('Semua')" id="target-Semua" class="${targetChat === 'Semua' ? 'active-chat' : ''}">
-                    <span>📢 Sadaya Jalmi (Broadcast)</span>
-                    <span class="badge-notif" id="badge-Semua" style="display: ${unreadCounts['Semua'] ? 'inline' : 'none'}">${unreadCounts['Semua'] || 0}</span>
-                </li>`;
-            
-            users.forEach(user => {
-                if(user !== myId) {
-                    checkAndCreateRoom(user);
-                    let displayBadge = unreadCounts[user] ? 'inline' : 'none';
-                    userList.innerHTML += `
-                        <li onclick="selectTarget('${user}')" id="target-${user}" class="${targetChat === user ? 'active-chat' : ''}">
-                            <span>👤 ${user}</span>
-                            <span class="badge-notif" id="badge-${user}" style="display: ${displayBadge}">${unreadCounts[user] || 0}</span>
-                        </li>`;
-                }
-            });
         });
 
         function checkAndCreateRoom(user) {
