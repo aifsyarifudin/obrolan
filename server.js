@@ -32,56 +32,38 @@ io.on('connection', (socket) => {
 
     // PESAN ASUP
     socket.on('chat message', (data) => {
+        try {
+            const messageId = data.msgId || Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+            
+            const newMessage = {
+                msgId: messageId,
+                id: data.id,       // 🔥 TETEP GUNAKAN 'id' supados cocog sareng index.html
+                sender: data.id,   // Ditambihan ieu kanggo cadangan upami peryogi 'sender'
+                target: data.target,
+                message: data.message || '',
+                msgType: data.msgType || 'text',
+                fileName: data.fileName || '',
+                isDeleted: false,
+                createdAt: new Date()
+            };
 
-    try {
+            chatHistory.push(newMessage);
 
-        const messageId =
-            data.msgId ||
-            Date.now() +
-            '-' +
-            Math.random().toString(36).substr(2, 9);
+            // batas riwayat
+            if (chatHistory.length > 200) {
+                chatHistory.shift();
+            }
 
-        const newMessage = {
+            // kirim pesan ka sadayana
+            io.emit('chat message', newMessage);
 
-            msgId: messageId,
+            // ✔ terkirim
+            io.emit('message delivered', messageId);
 
-            sender: data.id,
-
-            target: data.target,
-
-            message: data.message || '',
-
-            msgType: data.msgType || 'text',
-
-            fileName: data.fileName || '',
-
-            isDeleted: false,
-
-            createdAt: new Date()
-
-        };
-
-        chatHistory.push(newMessage);
-
-        // batas riwayat
-        if (chatHistory.length > 200) {
-            chatHistory.shift();
+        } catch (err) {
+            console.log('ERROR CHAT:', err);
         }
-
-        // kirim pesan
-        io.emit('chat message', newMessage);
-
-        // ✔ terkirim
-        io.emit('message delivered', messageId);
-
-    }
-    catch (err) {
-
-        console.log('ERROR CHAT:', err);
-
-    }
-
-});
+    });
 
     // ✔✔ dibaca
     socket.on('chat seen', (data) => {
