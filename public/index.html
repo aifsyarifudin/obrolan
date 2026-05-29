@@ -551,62 +551,72 @@
                 }
 
                 if (data.sender === myId) {
-                    item.className = 'my-message';
-                    let deleteButton = data.isDeleted ? '' : `<button class="del-btn" onclick="requestDeleteMessage('${data.msgId}')">🗑️</button>`;
-                    item.innerHTML = `<div class="text-content">${renderContent}</div>${deleteButton}`;
-                } else {
 
-                item.className = 'other-message';
-            
-                item.innerHTML =
-                    roomName === 'Semua'
-                    ? `<div class="sender-id">${data.sender}</div><div class="text-content">${renderContent}</div>`
-                    : `<div class="text-content">${renderContent}</div>`;
-            
-                // 🔥 cek apakah pesan memang keur akun ieu
-                const isPrivateForMe =
-                    data.target === myId;
-            
-                const isBroadcast =
-                    data.target === 'Semua';
-            
-                const notActiveChat =
-                    roomName !== targetChat;
-            
-                if (
-                    playSound &&
-                    data.sender !== myId &&
-                    (isPrivateForMe || isBroadcast)
-                ) {
-            
-                    // badge unread
-                    if (notActiveChat) {
-            
-                        unreadCounts[roomName] =
-                            (unreadCounts[roomName] || 0) + 1;
-            
-                        const badge =
-                            document.getElementById(`badge-${roomName}`);
-            
-                        if (badge) {
-            
-                            badge.innerText =
-                                unreadCounts[roomName];
-            
-                            badge.style.display = 'inline';
-            
+                    item.className = 'my-message';
+                
+                    let deleteButton =
+                        data.isDeleted
+                        ? ''
+                        : `<button class="del-btn"
+                            onclick="requestDeleteMessage('${data.msgId}')">🗑️</button>`;
+                
+                    item.innerHTML =
+                        `<div class="text-content">${renderContent}</div>${deleteButton}`;
+                
+                } else {
+                
+                    item.className = 'other-message';
+                
+                    item.innerHTML =
+                        roomName === 'Semua'
+                        ? `<div class="sender-id">${data.sender}</div>
+                           <div class="text-content">${renderContent}</div>`
+                        : `<div class="text-content">${renderContent}</div>`;
+                
+                    // 🔥 notif hanya untuk penerima
+                    const isPrivateForMe =
+                        data.target === myId;
+                
+                    const isBroadcast =
+                        data.target === 'Semua';
+                
+                    const notActiveChat =
+                        roomName !== targetChat;
+                
+                    if (
+                        playSound &&
+                        data.sender !== myId &&
+                        (isPrivateForMe || isBroadcast)
+                    ) {
+                
+                        // badge unread
+                        if (notActiveChat) {
+                
+                            unreadCounts[roomName] =
+                                (unreadCounts[roomName] || 0) + 1;
+                
+                            const badge =
+                                document.getElementById(`badge-${roomName}`);
+                
+                            if (badge) {
+                
+                                badge.innerText =
+                                    unreadCounts[roomName];
+                
+                                badge.style.display = 'inline';
+                
+                            }
+                
                         }
-            
+                
+                        // 🔊 suara notif
+                        if (notActiveChat) {
+                            playNotif();
+                        }
+                
                     }
-            
-                    // 🔊 notif suara
-                    if (notActiveChat) {
-                        playNotif();
-                    }
-            
+                
                 }
-            
-            }
                 
                 targetRoom.appendChild(item);
                 targetRoom.scrollTop = targetRoom.scrollHeight;
