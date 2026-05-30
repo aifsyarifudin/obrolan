@@ -285,6 +285,12 @@
         if(targetChat === user){
             backToContacts();
         }
+
+            // Tandaan waktu chat dihapus
+        localStorage.setItem(
+            `deleted_chat_${user}`,
+            Date.now()
+        );
     }
 
         // --- PROSES VOICE NOTE (REKAMAN SORA) ---
@@ -446,28 +452,19 @@
 
         function restoreContact(user){
 
-            let hiddenUsers =
-                JSON.parse(localStorage.getItem('hidden_users')) || [];
-        
-            hiddenUsers =
-                hiddenUsers.filter(u => u !== user);
-        
-            localStorage.setItem(
-                'hidden_users',
-                JSON.stringify(hiddenUsers)
-            );
-        
-            // Hapus tanda chat dihapus
-            localStorage.removeItem(
-                `deleted_chat_${user}`
-            );
-        
-            // Buat room kosong baru
-            checkAndCreateRoom(user);
-        
-            // Refresh daftar kontak
-            socket.emit('user login', myId);
-        }
+    let hiddenUsers =
+        JSON.parse(localStorage.getItem('hidden_users')) || [];
+
+    hiddenUsers =
+        hiddenUsers.filter(u => u !== user);
+
+    localStorage.setItem(
+        'hidden_users',
+        JSON.stringify(hiddenUsers)
+    );
+
+    socket.emit('user login', myId);
+}
 
         function checkAndCreateRoom(user) {
             if (!document.getElementById(`msg-room-${user}`)) {
@@ -651,7 +648,22 @@
                 roomName = data.id; 
             }
 
-            if (!roomName) return; 
+            if (!roomName) return;
+
+                if(localStorage.getItem(`deleted_chat_${roomName}`)){
+                    return;
+                } 
+
+            const deletedAt =
+                localStorage.getItem(`deleted_chat_${roomName}`);
+            
+            if(
+                deletedAt &&
+                data.timestamp &&
+                Number(data.timestamp) < Number(deletedAt)
+            ){
+                return;
+            }
 
             checkAndCreateRoom(roomName);
             const targetRoom = document.getElementById(`msg-room-${roomName}`);
