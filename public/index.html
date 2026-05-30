@@ -337,9 +337,10 @@
                         <li onclick="selectTarget('${user}')"
                             id="target-${user}"
                             class="${targetChat === user ? 'active-chat' : ''}">
-                            <span>
-                                <div>👤 ${user}</div>
-                                <div class="typing-status"></div>
+                            <span style="display:flex;flex-direction:column;">
+                                <span>${statusIcon} 👤 ${user}</span>
+                                <span class="typing-status"
+                                      style="font-size:11px;color:#25d366;"></span>
                             </span>
                             <span class="badge-notif"
                                 id="badge-${user}"
@@ -443,13 +444,12 @@
             typingUsers[data.from] = true;
         
             const li = document.getElementById(`target-${data.from}`);
-        
+
             if(li){
                 const statusSpan = li.querySelector('.typing-status');
-        
+            
                 if(statusSpan){
-                    statusSpan.innerHTML =
-                        '<span style="color:#25d366;font-size:12px;">✍️ keur ngetik...</span>';
+                    statusSpan.innerHTML = '✍️ keur ngetik...';
                 }
             }
         
