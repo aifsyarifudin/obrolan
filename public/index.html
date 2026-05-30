@@ -452,20 +452,25 @@
 
         function restoreContact(user){
 
-    let hiddenUsers =
-        JSON.parse(localStorage.getItem('hidden_users')) || [];
+            let hiddenUsers =
+                JSON.parse(localStorage.getItem('hidden_users')) || [];
 
-    hiddenUsers =
-        hiddenUsers.filter(u => u !== user);
+            hiddenUsers =
+                hiddenUsers.filter(u => u !== user);
 
-    localStorage.setItem(
-        'hidden_users',
-        JSON.stringify(hiddenUsers)
-    );
+            localStorage.setItem(
+                'hidden_users',
+                JSON.stringify(hiddenUsers)
+            );
 
-    socket.emit('user login', myId);
-}
+            // hapus tanda chat dihapus
+            localStorage.removeItem(
+                `deleted_chat_${user}`
+            );
 
+            socket.emit('user login', myId);
+        }
+        
         function checkAndCreateRoom(user) {
             if (!document.getElementById(`msg-room-${user}`)) {
                 const newRoom = document.createElement('ul');
@@ -478,29 +483,72 @@
 
         socket.on('load history', function(chatHistory) {
 
-            chatHistory.forEach(data => {
-        
-                let roomName = '';
-        
-                if(data.target === 'Semua'){
-                    roomName = 'Semua';
-                }else if(data.id === myId){
-                    roomName = data.target;
-                }else if(data.target === myId){
-                    roomName = data.id;
-                }
-        
-                if(
-                    roomName &&
-                    localStorage.getItem(`deleted_chat_${roomName}`)
-                ){
-                    return;
-                }
-        
-                appendMessageToRoom(data, false);
-            });
-        
-        });
+    let hasUnread = false;
+
+    chatHistory.forEach(data => {
+
+        let roomName = '';
+
+        if(data.target === 'Semua'){
+            roomName = 'Semua';
+        }else if(data.id === myId){
+            roomName = data.target;
+        }else if(data.target === myId){
+            roomName = data.id;
+        }
+
+        if(
+            roomName &&
+            localStorage.getItem(`deleted_chat_${roomName}`)
+        ){
+            return;
+        }
+
+        if(
+            data.target === myId &&
+            data.id !== myId &&
+            data.seen === false
+        ){
+
+            unreadCounts[data.id] =
+                (unreadCounts[data.id] || 0) + 1;
+
+            hasUnread = true;
+        }
+
+        appendMessageToRoom(data, false);
+
+    });
+
+    Object.keys(unreadCounts).forEach(user => {
+
+        const badge =
+            document.getElementById(`badge-${user}`);
+
+        if(badge){
+
+            badge.innerText =
+                unreadCounts[user];
+
+            badge.style.display =
+                'inline-block';
+
+        }
+
+    });
+
+    if(hasUnread){
+
+        try{
+            notifSound.currentTime = 0;
+            notifSound.play();
+        }catch(e){
+            console.log(e);
+        }
+
+    }
+
+});
 
         // 🔥 PERBAIKAN: Fungsi selectTarget dirobih tegas kanggo mupus badgenya
         function selectTarget(user) {
