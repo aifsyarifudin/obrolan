@@ -447,8 +447,14 @@
                 badge.style.display = 'none';
             }
             
-            setTimeout(() => { if(activeRoom) activeRoom.scrollTop = activeRoom.scrollHeight; }, 100);
-
+            setTimeout(() => {
+                if(activeRoom) {
+                    activeRoom.scrollTop = activeRoom.scrollHeight;
+                }
+            
+                input.focus();
+            }, 100);
+            
             socket.emit('chat seen', {
                 reader: myId,
                 target: user
