@@ -144,3 +144,21 @@ http.listen(PORT, () => {
     );
 
 });
+
+socket.on('delete conversation', (data) => {
+
+    chatHistory = chatHistory.filter(msg => {
+
+        const chatAB =
+            msg.id === data.user1 &&
+            msg.target === data.user2;
+
+        const chatBA =
+            msg.id === data.user2 &&
+            msg.target === data.user1;
+
+        return !(chatAB || chatBA);
+
+    });
+
+});
