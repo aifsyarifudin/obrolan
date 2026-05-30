@@ -126,6 +126,7 @@
         let myId = "Anonim";
         let targetChat = "Semua"; 
         let unreadCounts = {}; // Tetep dikonci sacara global
+        let typingUsers = {};
     
         const container = document.getElementById('chat-container');
         const form = document.getElementById('form');
@@ -277,7 +278,11 @@
         }
 
         input.addEventListener('input', function() {
-            socket.emit('typing', { from: myId, to: targetChat });
+            socket.emit('typing', {
+                from: myId,
+                to: targetChat
+            });
+        
             this.style.height = 'auto';
             this.style.height = (this.scrollHeight) + 'px';
         });
@@ -332,7 +337,10 @@
                         <li onclick="selectTarget('${user}')"
                             id="target-${user}"
                             class="${targetChat === user ? 'active-chat' : ''}">
-                            <span>${statusIcon} 👤 ${user}</span>
+                            <span>
+                                <div>👤 ${user}</div>
+                                <div class="typing-status"></div>
+                            </span>
                             <span class="badge-notif"
                                 id="badge-${user}"
                                 style="display: ${displayBadge}">
@@ -431,14 +439,45 @@
         });
 
         socket.on('typing', function(data){
-            if(data.from === targetChat){
-                chatTargetTitle.innerHTML = targetChat === 'Semua' ? `📢 Broadcast <small style="font-size:12px;">(${data.from} keur nulis...)</small>` : `👤 ${data.from} <small style="font-size:12px;">keur nulis...</small>`;
-                
-                clearTimeout(window.typingTimer);
-                window.typingTimer = setTimeout(() => {
-                    chatTargetTitle.innerHTML = targetChat === 'Semua' ? "📢 Sadaya Jalmi (Broadcast)" : `👤 ${data.from}`;
-                }, 1500);
+
+            typingUsers[data.from] = true;
+        
+            const li = document.getElementById(`target-${data.from}`);
+        
+            if(li){
+                const statusSpan = li.querySelector('.typing-status');
+        
+                if(statusSpan){
+                    statusSpan.innerHTML =
+                        '<span style="color:#25d366;font-size:12px;">✍️ keur ngetik...</span>';
+                }
             }
+        
+            if(data.from === targetChat){
+                chatTargetTitle.innerHTML =
+                    `👤 ${data.from} <small style="font-size:12px;">keur ngetik...</small>`;
+            }
+        
+            clearTimeout(typingUsers[data.from + '_timer']);
+        
+            typingUsers[data.from + '_timer'] = setTimeout(() => {
+        
+                const li = document.getElementById(`target-${data.from}`);
+        
+                if(li){
+                    const statusSpan = li.querySelector('.typing-status');
+        
+                    if(statusSpan){
+                        statusSpan.innerHTML = '';
+                    }
+                }
+        
+                if(data.from === targetChat){
+                    chatTargetTitle.innerHTML = `👤 ${data.from}`;
+                }
+        
+            }, 1500);
+        
         });
 
         socket.on('message deleted', function(msgId) {
