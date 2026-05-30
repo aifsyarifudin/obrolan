@@ -267,50 +267,6 @@
                 backToContacts();
             }
         }
-    
-        // Simpan daftar kontak disembunyikan
-        let hiddenUsers =
-            JSON.parse(localStorage.getItem('hidden_users')) || [];
-    
-        if(!hiddenUsers.includes(user)){
-            hiddenUsers.push(user);
-        }
-    
-        localStorage.setItem(
-            'hidden_users',
-            JSON.stringify(hiddenUsers)
-        );
-    
-        // Hapus isi room chat
-        const room =
-            document.getElementById(`msg-room-${user}`);
-    
-        if(room){
-            room.remove();
-        }
-    
-        // Hapus notif
-        delete unreadCounts[user];
-    
-        // Tandai chat sudah dihapus
-        localStorage.setItem(
-            `deleted_chat_${user}`,
-            '1'
-        );
-    
-        // Hapus dari sidebar
-        document.getElementById(`target-${user}`)?.remove();
-    
-        if(targetChat === user){
-            backToContacts();
-        }
-
-            // Tandaan waktu chat dihapus
-        localStorage.setItem(
-            `deleted_chat_${user}`,
-            Date.now()
-        );
-    }
 
         // --- PROSES VOICE NOTE (REKAMAN SORA) ---
         let mediaRecorder;
