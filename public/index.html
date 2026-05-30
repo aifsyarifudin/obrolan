@@ -90,7 +90,24 @@
                 <span class="sub-title-kontak">Kontak Aktif</span>
                 <button class="logout-btn" onclick="logoutUser()">Ganti ID</button>
             </div>
+            
+            <div style="padding:10px;border-bottom:1px solid #ddd;">
+                <button id="show-all-contacts"
+                    style="
+                        width:100%;
+                        padding:10px;
+                        border:none;
+                        border-radius:8px;
+                        background:#008069;
+                        color:white;
+                        font-weight:bold;
+                        cursor:pointer;">
+                    📒 Sadaya Kontak
+                </button>
+            </div>
+            
             <ul id="user-list"></ul>
+            
         </div>
 
         <div id="main-chat">
@@ -694,6 +711,94 @@
         });
     
     });
+    </script>
+
+    <div id="contacts-modal"
+    style="
+        display:none;
+        position:fixed;
+        top:0;
+        left:0;
+        width:100%;
+        height:100%;
+        background:rgba(0,0,0,.5);
+        z-index:9999;">
+
+    <div style="
+        background:white;
+        width:90%;
+        max-width:400px;
+        margin:50px auto;
+        border-radius:10px;
+        overflow:hidden;">
+
+        <div style="
+            background:#008069;
+            color:white;
+            padding:15px;
+            font-weight:bold;">
+            📒 Sadaya Kontak
+        </div>
+
+        <ul id="all-contacts-list"
+            style="
+                list-style:none;
+                max-height:400px;
+                overflow:auto;">
+        </ul>
+
+        <button onclick="closeContactsModal()"
+            style="
+                width:100%;
+                padding:12px;
+                border:none;
+                background:#eee;">
+            Tutup
+        </button>
+
+    </div>
+</div>
+    <script>
+        document.getElementById('show-all-contacts')
+.addEventListener('click', openContactsModal);
+
+function openContactsModal(){
+
+    const allUsers =
+        JSON.parse(localStorage.getItem('all_chat_users')) || [];
+
+    const list =
+        document.getElementById('all-contacts-list');
+
+    list.innerHTML = '';
+
+    allUsers.forEach(user => {
+
+        if(user === myId) return;
+
+        list.innerHTML += `
+            <li
+                style="
+                    padding:12px;
+                    border-bottom:1px solid #eee;
+                    cursor:pointer;"
+                onclick="
+                    selectTarget('${user}');
+                    closeContactsModal();
+                ">
+                👤 ${user}
+            </li>
+        `;
+    });
+
+    document.getElementById('contacts-modal')
+        .style.display = 'block';
+}
+
+function closeContactsModal(){
+    document.getElementById('contacts-modal')
+        .style.display = 'none';
+}
     </script>
 </body>
 </html>
