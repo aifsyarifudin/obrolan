@@ -331,17 +331,24 @@
                     // 🔥 KONCI UTAMA: Mastikeun display ngagunakeun 'inline-block' sangkan merenah katingal
                     let displayBadge = countUser > 0 ? 'inline-block' : 'none'; 
                     const isOnline = users.includes(user);
-                    const statusIcon = isOnline ? '🟢 Online' : '⚫ Offline';
+
+                    const statusBadge = isOnline
+                        ? '<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#00c853;margin-right:6px;"></span>'
+                        : '<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#ff1744;margin-right:6px;"></span>';
         
                     userList.innerHTML += `
                         <li onclick="selectTarget('${user}')"
                             id="target-${user}"
                             class="${targetChat === user ? 'active-chat' : ''}">
+                            
                             <span style="display:flex;flex-direction:column;">
-                                <span>${statusIcon} 👤 ${user}</span>
+                                <span>
+                                    ${statusBadge}👤 ${user}
+                                </span>
                                 <span class="typing-status"
                                       style="font-size:11px;color:#25d366;"></span>
                             </span>
+                            
                             <span class="badge-notif"
                                 id="badge-${user}"
                                 style="display: ${displayBadge}">
