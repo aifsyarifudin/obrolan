@@ -707,8 +707,8 @@
             
             if(
                 deletedAt &&
-                data.timestamp &&
-                Number(data.timestamp) < Number(deletedAt)
+                data.createdAt &&
+                Number(data.createdAt) < Number(deletedAt)
             ){
                 return;
             }
