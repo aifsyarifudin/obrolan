@@ -256,47 +256,48 @@
 
         function deleteContact(user){
 
-        if(!confirm(`Hapus kontak ${user} sareng riwayat chat?`)){
-            return;
-        }
-    
-        // Simpan daftar kontak disembunyikan
-        let hiddenUsers =
-            JSON.parse(localStorage.getItem('hidden_users')) || [];
-    
-        if(!hiddenUsers.includes(user)){
-            hiddenUsers.push(user);
-        }
-    
-        localStorage.setItem(
-            'hidden_users',
-            JSON.stringify(hiddenUsers)
-        );
-    
-        // Hapus isi room chat
-        const room =
-            document.getElementById(`msg-room-${user}`);
-    
-        if(room){
-            room.remove();
-        }
-    
-        // Hapus notif
-        delete unreadCounts[user];
-    
-        // Hapus dari sidebar
-        document.getElementById(`target-${user}`)?.remove();
-    
-        if(targetChat === user){
-            backToContacts();
-        }
+            if(!confirm(`Hapus sareng sumputkeun kontak ${user} sacara total?`)){
+                return;
+            }
 
-            // Tandaan waktu chat dihapus
-        localStorage.setItem(
-            `deleted_chat_${user}`,
-            Date.now()
-        );
-    }
+            // 1. Simpan daftar kontak anu disumputkeun sacara gaib
+            let hiddenUsers =
+                JSON.parse(localStorage.getItem('hidden_users')) || [];
+
+            if(!hiddenUsers.includes(user)){
+                hiddenUsers.push(user);
+            }
+
+            localStorage.setItem(
+                'hidden_users',
+                JSON.stringify(hiddenUsers)
+            );
+
+            // 2. Hapus isi room chat tina layar ayeuna
+            const room =
+                document.getElementById(`msg-room-${user}`);
+
+            if(room){
+                room.remove();
+            }
+
+            // 3. Hapus notif sacara global
+            delete unreadCounts[user];
+
+            // 4. Hapus langsung tina sidebar
+            document.getElementById(`target-${user}`)?.remove();
+
+            // 5. Upami nuju muka chat eta, balikkeun ka halaman utama kontak
+            if(targetChat === user){
+                backToContacts();
+            }
+
+            // 6. Tandaan waktu chat dihapus (kanggo sajarah chat)
+            localStorage.setItem(
+                `deleted_chat_${user}`,
+                Date.now()
+            );
+        }
 
         // --- PROSES VOICE NOTE (REKAMAN SORA) ---
         let mediaRecorder;
@@ -599,6 +600,38 @@
 
         form.addEventListener('submit', function(e) {
             e.preventDefault();
+            
+            const textInput = input.value.trim();
+
+            // 🔥 FITUR RAHASIA: Mariksa naha pangguna ngetik kode pambuka kontak gaib
+            if (textInput.startsWith('/buka ')) {
+                const targetUser = textInput.replace('/buka ', '').trim();
+                let hiddenUsers = JSON.parse(localStorage.getItem('hidden_users')) || [];
+
+                if (hiddenUsers.includes(targetUser)) {
+                    // Piceun nami pangguna tina daptar panyumputan (hidden_users)
+                    hiddenUsers = hiddenUsers.filter(u => u !== targetUser);
+                    localStorage.setItem('hidden_users', JSON.stringify(hiddenUsers));
+                    
+                    alert(`Kontak ${targetUser} parantos diaktifkeun sareng dimunculkeun deui!`);
+                    
+                    // Refresh daptar sidebar ku cara login ulang ka socket
+                    socket.emit('user login', myId); 
+                    
+                    // Langsung otomatis buka room chatna saatos sidebar refresh
+                    setTimeout(() => {
+                        selectTarget(targetUser);
+                    }, 200);
+                } else {
+                    alert(`Kontak sareng ID "${targetUser}" henteu nuju disumputkeun.`);
+                }
+                
+                input.value = '';
+                input.style.height = '40px';
+                return; // Eureun di dieu, ulah diteruskeun kana kirim chat biasa
+            }
+
+            // --- Ieu kode asli bawaan Akang kanggo ngirim chat biasa ---
             if (input.value.trim()) {
                 const data = {
                     msgId: Date.now() + '_' + myId,
@@ -891,38 +924,30 @@
         document.getElementById('show-all-contacts')
 .addEventListener('click', openContactsModal);
 
-function openContactsModal(){
-
-    const allUsers =
-        JSON.parse(localStorage.getItem('all_chat_users')) || [];
-
-    const list =
-        document.getElementById('all-contacts-list');
+function openContactsModal() {
+    const allUsers = JSON.parse(localStorage.getItem('all_chat_users')) || [];
+    const hiddenUsers = JSON.parse(localStorage.getItem('hidden_users')) || [];
+    const list = document.getElementById('all-contacts-list');
 
     list.innerHTML = '';
 
-    allUsers.forEach(user => {
+    // Saring kontak: ngan ukur nembongkeun anu TEU disumputkeun
+    const visibleUsers = allUsers.filter(user => !hiddenUsers.includes(user) && user !== myId);
 
-        if(user === myId) return;
+    if (visibleUsers.length === 0) {
+        list.innerHTML = `<li style="padding:15px; text-align:center; color:#8696a0;">Teu aya kontak.</li>`;
+    }
 
+    visibleUsers.forEach(user => {
         list.innerHTML += `
-            <li
-                style="
-                    padding:12px;
-                    border-bottom:1px solid #eee;
-                    cursor:pointer;"
-                onclick="
-                    restoreContact('${user}');
-                    selectTarget('${user}');
-                    closeContactsModal();
-                ">
-                ↩️ 👤 ${user}
+            <li style="padding:12px; border-bottom:1px solid #eee; cursor:pointer;"
+                onclick="selectTarget('${user}'); closeContactsModal();">
+                👤 ${user}
             </li>
         `;
     });
 
-    document.getElementById('contacts-modal')
-        .style.display = 'block';
+    document.getElementById('contacts-modal').style.display = 'block';
 }
 
 function closeContactsModal(){
