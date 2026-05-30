@@ -45,7 +45,7 @@ io.on('connection', (socket) => {
                 fileName: data.fileName || '',
                 isDeleted: false,
                 seen: false,
-                timestamp: Date.now()
+                createdAt: Date.now()
             };
 
             chatHistory.push(newMessage);
