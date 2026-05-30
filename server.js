@@ -37,14 +37,15 @@ io.on('connection', (socket) => {
             
             const newMessage = {
                 msgId: messageId,
-                id: data.id,       // 🔥 TETEP GUNAKAN 'id' supados cocog sareng index.html
-                sender: data.id,   // Ditambihan ieu kanggo cadangan upami peryogi 'sender'
+                id: data.id,
+                sender: data.id,
                 target: data.target,
                 message: data.message || '',
                 msgType: data.msgType || 'text',
                 fileName: data.fileName || '',
                 isDeleted: false,
-                createdAt: new Date()
+                seen: false,
+                timestamp: Date.now()
             };
 
             chatHistory.push(newMessage);
@@ -67,9 +68,20 @@ io.on('connection', (socket) => {
 
     // ✔✔ dibaca
     socket.on('chat seen', (data) => {
-    
+
+        chatHistory.forEach(msg => {
+
+            if(
+                msg.id === data.target &&
+                msg.target === data.reader
+            ){
+                msg.seen = true;
+            }
+
+        });
+
         io.emit('message seen', data.target);
-    
+
     });
 
     // ✍️ keur nulis
