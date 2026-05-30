@@ -16,7 +16,7 @@ let activeUsers = {};
 
 io.on('connection', (socket) => {
 
-    console.log('Aya nu lebet jaringan');
+    console.log('[SISTEM] Aya nu lebet jaringan (Koneksi Anyar)');
 
     // LOGIN USER
     socket.on('user login', (username) => {
@@ -24,6 +24,9 @@ io.on('connection', (socket) => {
         socket.username = username;
 
         activeUsers[username] = socket.id;
+
+        // LOG TAMBAHAN: Nyatet saha anu login
+        console.log(`[LOGIN] User "${username}" parantos lebet. Jumlah pangguna aktif: ${Object.keys(activeUsers).length}`);
 
         io.emit('update user list', Object.keys(activeUsers));
 
@@ -55,6 +58,13 @@ io.on('connection', (socket) => {
                 chatHistory.shift();
             }
 
+            // LOG TAMBAHAN: Nyatet eusi pesen, tipe pesen (text/image/vn), sareng saha anu ngirimna
+            if (newMessage.msgType === 'text') {
+                console.log(`[PESEN] tina "${newMessage.sender}" ka "${newMessage.target}": ${newMessage.message}`);
+            } else {
+                console.log(`[MEDIA] tina "${newMessage.sender}" ka "${newMessage.target}" ngirim ${newMessage.msgType}: ${newMessage.fileName}`);
+            }
+
             // kirim pesan ka sadayana
             io.emit('chat message', newMessage);
 
@@ -80,6 +90,9 @@ io.on('connection', (socket) => {
 
         });
 
+        // LOG TAMBAHAN: Nyatet upami pesen tos dibaca
+        console.log(`[SEEN] Pesen tina "${data.target}" parantos dibaca ku "${data.reader}"`);
+
         io.emit('message seen', data.target);
 
     });
@@ -87,6 +100,11 @@ io.on('connection', (socket) => {
     // ✍️ keur nulis
     socket.on('typing', (data) => {
     
+        // LOG TAMBAHAN: Nyatet pangguna anu nuju ngetik (opsional, bakal sering muncul upami ngetik)
+        if (data.isTyping) {
+            console.log(`[TYPING] "${data.username}" nuju ngetik pesen...`);
+        }
+
         io.emit('typing', data);
     
     });
@@ -98,6 +116,10 @@ io.on('connection', (socket) => {
             chatHistory.findIndex(m => m.msgId === msgId);
 
         if (msgIndex !== -1) {
+
+            // LOG TAMBAHAN: Nyatet saha pangguna anu ngahapus pesenna
+            const sender = chatHistory[msgIndex].sender;
+            console.log(`[HAPUS] Pesen ID: ${msgId} (dikirim ku "${sender}") parantos dihapus ku pangguna`);
 
             chatHistory[msgIndex].message =
                 "🚫 Pesen ieu parantos dihapus";
@@ -114,17 +136,18 @@ io.on('connection', (socket) => {
     // USER KALUAR
     socket.on('disconnect', () => {
 
-        console.log('Aya nu kaluar');
-
+        // LOG TAMBAHAN: Nyatet nami pangguna anu kaluar jaringan
         if (socket.username) {
-
+            console.log(`[KALUAR] User "${socket.username}" kaluar jaringan.`);
             delete activeUsers[socket.username];
-
-            io.emit(
-                'update user list',
-                Object.keys(activeUsers)
-            );
+        } else {
+            console.log('[SISTEM] Aya nu kaluar (Koneksi can login / anonim)');
         }
+
+        io.emit(
+            'update user list',
+            Object.keys(activeUsers)
+        );
 
     });
 
