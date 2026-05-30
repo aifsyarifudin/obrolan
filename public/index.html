@@ -249,27 +249,27 @@
                 return;
             }
         
-            let savedUsers =
-                JSON.parse(localStorage.getItem('all_chat_users')) || [];
+            // Ambil daftar kontak disumputkeun
+            let hiddenUsers =
+                JSON.parse(localStorage.getItem('hidden_users')) || [];
         
-            savedUsers =
-                savedUsers.filter(u => u !== user);
-        
-            localStorage.setItem(
-                'all_chat_users',
-                JSON.stringify(savedUsers)
-            );
-        
-            // hapus room chat
-            const room =
-                document.getElementById(`msg-room-${user}`);
-        
-            if(room){
-                room.remove();
+            // Tambahkeun kana hidden_users lamun can aya
+            if(!hiddenUsers.includes(user)){
+                hiddenUsers.push(user);
             }
         
-            // refresh tampilan
+            localStorage.setItem(
+                'hidden_users',
+                JSON.stringify(hiddenUsers)
+            );
+        
+            // Hapus tina tampilan sidebar wungkul
             document.getElementById(`target-${user}`)?.remove();
+        
+            // Mun keur muka chat kontak eta, balik ka daftar kontak
+            if(targetChat === user){
+                backToContacts();
+            }
         
         }
 
@@ -344,6 +344,8 @@
         // 🔥 PERBAIKAN TOTAL: Supados badge/tanda pesan baru tetep muncul sareng teu leungit
         socket.on('update user list', function(users) {
             let savedUsers = JSON.parse(localStorage.getItem('all_chat_users')) || [];
+            let hiddenUsers =
+                JSON.parse(localStorage.getItem('hidden_users')) || [];
         
             users.forEach(user => {
                 if (user !== myId && !savedUsers.includes(user)) {
@@ -370,6 +372,10 @@
         
             // 2. Tampilkan daptar pangguna lianna
             savedUsers.forEach(user => {
+
+                if(hiddenUsers.includes(user)){
+                    return;
+                }
                 if(user !== myId) {
                     checkAndCreateRoom(user);
         
@@ -423,6 +429,23 @@
                 }
             });
         });
+
+        function restoreContact(user){
+
+            let hiddenUsers =
+                JSON.parse(localStorage.getItem('hidden_users')) || [];
+        
+            hiddenUsers =
+                hiddenUsers.filter(u => u !== user);
+        
+            localStorage.setItem(
+                'hidden_users',
+                JSON.stringify(hiddenUsers)
+            );
+        
+            // Refresh daftar kontak
+            socket.emit('user login', myId);
+        }
 
         function checkAndCreateRoom(user) {
             if (!document.getElementById(`msg-room-${user}`)) {
@@ -782,10 +805,11 @@ function openContactsModal(){
                     border-bottom:1px solid #eee;
                     cursor:pointer;"
                 onclick="
+                    restoreContact('${user}');
                     selectTarget('${user}');
                     closeContactsModal();
                 ">
-                👤 ${user}
+                ↩️ 👤 ${user}
             </li>
         `;
     });
