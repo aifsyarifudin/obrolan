@@ -227,6 +227,36 @@
             inputElement.value = ''; 
         }
 
+        function deleteContact(user){
+
+            if(!confirm(`Hapus kontak ${user}?`)){
+                return;
+            }
+        
+            let savedUsers =
+                JSON.parse(localStorage.getItem('all_chat_users')) || [];
+        
+            savedUsers =
+                savedUsers.filter(u => u !== user);
+        
+            localStorage.setItem(
+                'all_chat_users',
+                JSON.stringify(savedUsers)
+            );
+        
+            // hapus room chat
+            const room =
+                document.getElementById(`msg-room-${user}`);
+        
+            if(room){
+                room.remove();
+            }
+        
+            // refresh tampilan
+            document.getElementById(`target-${user}`)?.remove();
+        
+        }
+
         // --- PROSES VOICE NOTE (REKAMAN SORA) ---
         let mediaRecorder;
         let audioChunks = [];
@@ -337,25 +367,43 @@
                         : '<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#ff1744;margin-right:6px;"></span>';
         
                     userList.innerHTML += `
-                        <li onclick="selectTarget('${user}')"
-                            id="target-${user}"
-                            class="${targetChat === user ? 'active-chat' : ''}">
-                            
-                            <span style="display:flex;flex-direction:column;">
-                                <span>
-                                    ${statusBadge}👤 ${user}
+                        <li id="target-${user}"
+                            class="${targetChat === user ? 'active-chat' : ''}"
+                            style="display:flex;justify-content:space-between;align-items:center;">
+                        
+                            <div onclick="selectTarget('${user}')"
+                                 style="flex:1;cursor:pointer;">
+                        
+                                <span style="display:flex;flex-direction:column;">
+                                    <span>
+                                        ${statusBadge}👤 ${user}
+                                    </span>
+                                    <span class="typing-status"
+                                          style="font-size:11px;color:#25d366;"></span>
                                 </span>
-                                <span class="typing-status"
-                                      style="font-size:11px;color:#25d366;"></span>
-                            </span>
-                            
+                        
+                            </div>
+                        
+                            <button
+                                onclick="deleteContact('${user}')"
+                                style="
+                                    border:none;
+                                    background:none;
+                                    cursor:pointer;
+                                    font-size:16px;
+                                    color:#ff1744;
+                                    padding:5px;">
+                                🗑️
+                            </button>
+                        
                             <span class="badge-notif"
                                 id="badge-${user}"
-                                style="display: ${displayBadge}">
+                                style="display:${displayBadge}">
                                 ${countUser}
                             </span>
+                        
                         </li>
-                    `;
+                        `;
                 }
             });
         });
