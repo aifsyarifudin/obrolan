@@ -245,8 +245,27 @@
 
         function deleteContact(user){
 
-        if(!confirm(`Hapus kontak ${user} sareng riwayat chat?`)){
-            return;
+            if(!confirm(`Hapus kontak ${user} sareng riwayat chat?`)){
+                return;
+            }
+        
+            socket.emit('delete conversation',{
+                user1: myId,
+                user2: user
+            });
+        
+            document.getElementById(`target-${user}`)?.remove();
+        
+            const room =
+                document.getElementById(`msg-room-${user}`);
+        
+            if(room){
+                room.remove();
+            }
+        
+            if(targetChat === user){
+                backToContacts();
+            }
         }
     
         // Simpan daftar kontak disembunyikan
