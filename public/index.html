@@ -273,12 +273,6 @@
         // Hapus notif
         delete unreadCounts[user];
     
-        // Tandai chat sudah dihapus
-        localStorage.setItem(
-            `deleted_chat_${user}`,
-            '1'
-        );
-    
         // Hapus dari sidebar
         document.getElementById(`target-${user}`)?.remove();
     
@@ -463,14 +457,11 @@
                 JSON.stringify(hiddenUsers)
             );
 
-            // hapus tanda chat dihapus
-            localStorage.removeItem(
-                `deleted_chat_${user}`
-            );
+            // JANGAN HAPUS deleted_chat
 
             socket.emit('user login', myId);
         }
-        
+
         function checkAndCreateRoom(user) {
             if (!document.getElementById(`msg-room-${user}`)) {
                 const newRoom = document.createElement('ul');
@@ -497,9 +488,13 @@
             roomName = data.id;
         }
 
+        const deletedAt =
+            localStorage.getItem(`deleted_chat_${roomName}`);
+
         if(
-            roomName &&
-            localStorage.getItem(`deleted_chat_${roomName}`)
+            deletedAt &&
+            data.timestamp &&
+            Number(data.timestamp) < Number(deletedAt)
         ){
             return;
         }
@@ -686,25 +681,22 @@
         }
 
         function appendMessageToRoom(data, playSound) {
+
             let roomName = "";
-            
+
             if (data.target === 'Semua') {
                 roomName = "Semua";
             } else if (data.id === myId) {
                 roomName = data.target;
             } else if (data.target === myId) {
-                roomName = data.id; 
+                roomName = data.id;
             }
 
             if (!roomName) return;
 
-                if(localStorage.getItem(`deleted_chat_${roomName}`)){
-                    return;
-                } 
-
             const deletedAt =
                 localStorage.getItem(`deleted_chat_${roomName}`);
-            
+
             if(
                 deletedAt &&
                 data.timestamp &&
@@ -714,7 +706,9 @@
             }
 
             checkAndCreateRoom(roomName);
-            const targetRoom = document.getElementById(`msg-room-${roomName}`);
+
+            const targetRoom =
+                document.getElementById(`msg-room-${roomName}`);
             
             if (targetRoom) {
                 const item = document.createElement('li');
