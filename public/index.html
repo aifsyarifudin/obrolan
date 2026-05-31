@@ -101,6 +101,22 @@
                 <button class="logout-btn" onclick="logoutUser()">Ganti ID</button>
             </div>
             
+            <div style="padding:10px; padding-top:5px; border-bottom:1px solid #ddd;">
+                <button id="toggle-mute-btn"
+                    onclick="toggleMuteNotif()"
+                    style="
+                        width:100%;
+                        padding:10px;
+                        border:1px solid #008069;
+                        border-radius:8px;
+                        background:white;
+                        color:#008069;
+                        font-weight:bold;
+                        cursor:pointer;">
+                    🔊 Sora Notif: Hurung
+                </button>
+            </div>
+
             <div style="padding:10px;border-bottom:1px solid #ddd;">
                 <button id="show-all-contacts"
                     style="
@@ -115,7 +131,7 @@
                     📒 Sadaya Kontak
                 </button>
             </div>
-            
+
             <ul id="user-list"></ul>
             
         </div>
@@ -142,6 +158,41 @@
         </div>
     </div>
 
+    <div id="custom-context-menu" 
+        style="display:none; position:fixed; background:white; border-radius:8px; box-shadow:0 2px 10px rgba(0,0,0,0.2); z-index:10000; overflow:hidden; width:150px;">
+        <ul style="list-style:none; padding:0; margin:0;">
+            <li id="menu-balas" style="padding:12px 15px; cursor:pointer; font-size:14px; font-weight:500; color:#333; transition:background 0.2s;" onmouseover="this.style.background='#f0f2f5'" onmouseout="this.style.background='transparent'">💬 Balas</li>
+            <li id="menu-hapus" style="padding:12px 15px; cursor:pointer; font-size:14px; font-weight:500; color:#ff1744; transition:background 0.2s;" onmouseover="this.style.background='#f0f2f5'" onmouseout="this.style.background='transparent'">🗑️ Hapus</li>
+            <li id="menu-terus" style="padding:12px 15px; cursor:pointer; font-size:14px; font-weight:500; color:#333; transition:background 0.2s;" onmouseover="this.style.background='#f0f2f5'" onmouseout="this.style.background='transparent'">➡️ Teruskeun</li>
+        </ul>
+    </div>
+
+    <div id="contact-context-menu" 
+        style="display:none; position:fixed; background:white; border-radius:8px; box-shadow:0 2px 10px rgba(0,0,0,0.2); z-index:10000; overflow:hidden; width:170px;">
+        <ul style="list-style:none; padding:0; margin:0;">
+            <li id="menu-pasang-poto" style="padding:12px 15px; cursor:pointer; font-size:14px; font-weight:500; color:#333; transition:background 0.2s;" onmouseover="this.style.background='#f0f2f5'" onmouseout="this.style.background='transparent'">📷 Pasang Poto Profil</li>
+            <li id="menu-gentos-nami" style="padding:12px 15px; cursor:pointer; font-size:14px; font-weight:500; color:#333; transition:background 0.2s;" onmouseover="this.style.background='#f0f2f5'" onmouseout="this.style.background='transparent'">✏️ Gentos Nami</li>
+            <li id="menu-hapus-kontak" style="padding:12px 15px; cursor:pointer; font-size:14px; font-weight:500; color:#ff1744; transition:background 0.2s;" onmouseover="this.style.background='#f0f2f5'" onmouseout="this.style.background='transparent'">🗑️ Hapus Kontak</li>
+            <li id="menu-sumput-kontak" style="padding:12px 15px; cursor:pointer; font-size:14px; font-weight:500; color:#333; transition:background 0.2s;" onmouseover="this.style.background='#f0f2f5'" onmouseout="this.style.background='transparent'">👁️ Sumputkeun Kontak</li>
+        </ul>
+    </div>
+
+    <input type="file" id="poto-profil-uploader" accept="image/*" style="display:none;">
+
+    <div id="image-viewer-modal" 
+        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:99999; justify-content:center; align-items:center; flex-direction:column;">
+        
+        <span onclick="document.getElementById('image-viewer-modal').style.display='none'" 
+            style="position:absolute; top:20px; right:25px; color:white; font-size:35px; font-weight:bold; cursor:pointer; user-select:none;">&times;</span>
+        
+        <img id="modal-img-content" src="" style="max-width:90%; max-height:80%; border-radius:8px; box-shadow:0 4px 20px rgba(0,0,0,0.5);">
+        
+        <a id="modal-download-btn" href="" download="kiriman_poto.png" 
+        style="margin-top:20px; padding:10px 24px; background:#008069; color:white; text-decoration:none; font-weight:bold; border-radius:30px; font-size:14px; box-shadow:0 2px 8px rgba(0,0,0,0.3); display:inline-flex; align-items:center; gap:8px;">
+        📥 Download Poto
+        </a>
+    </div>
+
     <audio id="notifSound" preload="auto">
         <source src="notif.mp3" type="audio/mpeg">
     </audio>
@@ -154,6 +205,8 @@
         let targetChat = "Semua"; 
         let unreadCounts = {}; // Tetep dikonci sacara global
         let typingUsers = {};
+        let teksDiteruskeun = ""; // 🔥 Tambahan kanggo nampung sauntuyan teks nu bade diteruskeun
+        let isMuted = false; // 🔥 Tambahan: Defaultna sora notif hurung (false)
     
         const container = document.getElementById('chat-container');
         const form = document.getElementById('form');
@@ -177,20 +230,40 @@
         }, { once: true });
         
         // --- FUNGSI SUARA NOTIF ---
+        // 🔥 UPDATE FUNGSI: Sora notif moal disada upami statusna nuju di-Mute
         function playNotif() {
+            if (isMuted) {
+                // 📱 PWA TRICK: Upami di-mute, gentos ku getaran alit (vibrate) salami 200ms upami HP-na ngadukung
+                if ('vibrate' in navigator) {
+                    navigator.vibrate(200);
+                }
+                return; // Eureun di dieu, sora moal ditiupkeun
+            }
+
             if (notifSound) {
                 notifSound.pause(); 
                 notifSound.currentTime = 0; 
-            
                 notifSound.play()
-                    .then(() => {
-                        console.log("Notif diputer");
-                    })
-                    .catch(err => {
-                        console.log("Gagal muter notif:", err);
-                    });
+                    .then(() => { console.log("Notif diputer"); })
+                    .catch(err => { console.log("Gagal muter notif:", err); });
+            }
+        }
+
+        // 🔥 FUNGSI ANYAR: Kanggo pindah status Mute / Unmute
+        function toggleMuteNotif() {
+            isMuted = !isMuted;
+            const btn = document.getElementById('toggle-mute-btn');
+            
+            if (isMuted) {
+                btn.innerText = "🔕 Sora Notif: Paéh (Getar)";
+                btn.style.background = "#ff1744";
+                btn.style.color = "white";
+                btn.style.border = "none";
             } else {
-                console.log("Elemen notifSound teu kapendak");
+                btn.innerText = "🔊 Sora Notif: Hurung";
+                btn.style.background = "white";
+                btn.style.color = "#008069";
+                btn.style.border = "1px solid #008069";
             }
         }
         
@@ -254,50 +327,88 @@
             inputElement.value = ''; 
         }
 
-        function deleteContact(user){
+        // 🔥 FUNGSI ANYAR: Pop-up menu kontak langsung klik tanpa tulis angka
+        // 🔥 UPDATE FUNGSI: Menu kontak ayeuna tiasa ngagentos nami kontak batur
+        // 🔥 PERBAIKAN SINTAKS: Mastikeun moal aya error 'Unexpected identifier'
+        function deleteContact(e, user) {
+            const cMenu = document.getElementById('contact-context-menu');
+            
+            cMenu.style.top = e.clientY + 'px';
+            cMenu.style.left = e.clientX + 'px';
+            cMenu.style.display = 'block';
 
-            if(!confirm(`Hapus sareng sumputkeun kontak ${user} sacara total?`)){
-                return;
-            }
+            // 📷 PILIHAN UTAMA: PASANG POTO PROFIL PILIHAN NYALIRA
+            document.getElementById('menu-pasang-poto').onclick = function() {
+                cMenu.style.display = 'none';
+                const uploader = document.getElementById('poto-profil-uploader');
+                
+                uploader.click(); // Mancing galeri HP/Laptop supados kabuka
+                
+                uploader.onchange = function(event) {
+                    const file = event.target.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = function(e) {
+                            // Simpen poto aslina dina format Base64 kana localStorage
+                            localStorage.setItem('poto_profil_' + user, e.target.result);
+                            alert('Poto profil kanggo ' + user + ' parantos hasil digentos!');
+                            socket.emit('user login', myId); // Refresh tampilan sidebar
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                };
+            };
 
-            // 1. Simpan daftar kontak anu disumputkeun sacara gaib
-            let hiddenUsers =
-                JSON.parse(localStorage.getItem('hidden_users')) || [];
+            // Pilihan sanesna tetep sami...
+            document.getElementById('menu-gentos-nami').onclick = function() {
+                cMenu.style.display = 'none';
+                const currentAlias = localStorage.getItem('alias_' + user) || user;
+                const newAlias = prompt("Lebetkeun nami énggal kanggo " + user + ":", currentAlias);
+                if (newAlias !== null) {
+                    if (newAlias.trim() !== "") { localStorage.setItem('alias_' + user, newAlias.trim()); } 
+                    else { localStorage.removeItem('alias_' + user); }
+                    socket.emit('user login', myId);
+                }
+            };
 
-            if(!hiddenUsers.includes(user)){
-                hiddenUsers.push(user);
-            }
+            document.getElementById('menu-hapus-kontak').onclick = function() {
+                let hiddenUsers = JSON.parse(localStorage.getItem('hidden_users')) || [];
+                hiddenUsers = hiddenUsers.filter(u => u !== user);
+                localStorage.setItem('hidden_users', JSON.stringify(hiddenUsers));
+                localStorage.setItem('deleted_chat_' + user, Date.now());
+                eksekusiEfekKontak(user);
+            };
 
-            localStorage.setItem(
-                'hidden_users',
-                JSON.stringify(hiddenUsers)
-            );
+            document.getElementById('menu-sumput-kontak').onclick = function() {
+                let hiddenUsers = JSON.parse(localStorage.getItem('hidden_users')) || [];
+                if (!hiddenUsers.includes(user)) { hiddenUsers.push(user); }
+                localStorage.setItem('hidden_users', JSON.stringify(hiddenUsers));
+                eksekusiEfekKontak(user);
+            };
+        }
 
-            // 2. Hapus isi room chat tina layar ayeuna
-            const room =
-                document.getElementById(`msg-room-${user}`);
+        // Fungsi pembantu kanggo ngabersihkeun saatos diklik (supados teu ngetik kode paulang-ulang)
+        function eksekusiEfekKontak(user) {
+            const cMenu = document.getElementById('contact-context-menu');
+            cMenu.style.display = 'none';
 
-            if(room){
-                room.remove();
-            }
+            const room = document.getElementById(`msg-room-${user}`);
+            if (room) { room.remove(); }
 
-            // 3. Hapus notif sacara global
             delete unreadCounts[user];
-
-            // 4. Hapus langsung tina sidebar
             document.getElementById(`target-${user}`)?.remove();
 
-            // 5. Upami nuju muka chat eta, balikkeun ka halaman utama kontak
-            if(targetChat === user){
+            if (targetChat === user) {
                 backToContacts();
             }
-
-            // 6. Tandaan waktu chat dihapus (kanggo sajarah chat)
-            localStorage.setItem(
-                `deleted_chat_${user}`,
-                Date.now()
-            );
+            socket.emit('user login', myId);
         }
+
+        // 🛠️ Update fungsi panutup otomatis (gabungkeun sareng nu lami)
+        document.addEventListener('click', function(e) {
+            document.getElementById('custom-context-menu').style.display = 'none';
+            document.getElementById('contact-context-menu').style.display = 'none';
+        });
 
         // --- PROSES VOICE NOTE (REKAMAN SORA) ---
         let mediaRecorder;
@@ -368,10 +479,11 @@
 
         // 🔥 PERBAIKAN: Supados angka notif lami teu keuna ku reset innerHTML
         // 🔥 PERBAIKAN TOTAL: Supados badge/tanda pesan baru tetep muncul sareng teu leungit
+        // 🔥 PERBAIKAN SINKRONISASI: Supados kontak anu dihapus atanapi disumputkeun leres-leres leungit tina sidebar
+        // 🔥 UPDATE FITUR: Teukan lami (Long Press) kanggo milih Hapus/Sumputkeun Kontak
         socket.on('update user list', function(users) {
             let savedUsers = JSON.parse(localStorage.getItem('all_chat_users')) || [];
-            let hiddenUsers =
-                JSON.parse(localStorage.getItem('hidden_users')) || [];
+            let hiddenUsers = JSON.parse(localStorage.getItem('hidden_users')) || [];
         
             users.forEach(user => {
                 if (user !== myId && !savedUsers.includes(user)) {
@@ -396,53 +508,54 @@
                 </li>
             `;
         
-            // 2. Tampilkan daptar pangguna lianna
+            // 2. Tampilkan daptar pangguna lianna + Poto Profil (Kustom / Default)
             savedUsers.forEach(user => {
+                if(hiddenUsers.includes(user)){ return; }
 
-                if(hiddenUsers.includes(user)){
-                    return;
-                }
+                const isDeleted = localStorage.getItem('deleted_chat_' + user);
+                if (isDeleted) { return; }
+                
                 if(user !== myId) {
                     checkAndCreateRoom(user);
         
                     let countUser = unreadCounts[user] || 0;
-                    // 🔥 KONCI UTAMA: Mastikeun display ngagunakeun 'inline-block' sangkan merenah katingal
                     let displayBadge = countUser > 0 ? 'inline-block' : 'none'; 
                     const isOnline = users.includes(user);
 
-                    const statusBadge = isOnline
-                        ? '<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#00c853;margin-right:6px;"></span>'
-                        : '<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#ff1744;margin-right:6px;"></span>';
+                    // 1. Atur warna lampu dumasar status online kanggo ditempelkeun dina poto
+                    const statusColor = isOnline ? '#00c853' : '#ff1744';
         
+                    // 2. Candak nami landian khusus (upami aya) sateuacan ngadamel HTML
+                    const namaTampilan = localStorage.getItem('alias_' + user) || user;
+
+                    // 3. LOGIKA SIFAT POTO PROFIL (Kustom tina galeri atanapi otomatis huruf)
+                    const potoKustom = localStorage.getItem('poto_profil_' + user);
+                    const fotoProfilFix = potoKustom ? potoKustom : `https://ui-avatars.com/api/?name=${user}&background=random&color=fff&rounded=true&size=40`;
+
+                    // 4. Asupkeun HTML-na sacara bersih kalayan struktur gaya WhatsApp modern
                     userList.innerHTML += `
                         <li id="target-${user}"
                             class="${targetChat === user ? 'active-chat' : ''}"
-                            style="display:flex;justify-content:space-between;align-items:center;">
+                            style="display:flex;justify-content:space-between;align-items:center;user-select:none;-webkit-user-select:none;padding:10px 12px;"
+                            oncontextmenu="eureunkeunAksi(event); deleteContact(event, '${user}');">
                         
                             <div onclick="selectTarget('${user}')"
-                                 style="flex:1;cursor:pointer;">
+                                 style="flex:1;cursor:pointer;display:flex;align-items:center;gap:12px;">
+                        
+                                <div style="position:relative; width:40px; height:40px; flex-shrink:0;">
+                                    <img src="${fotoProfilFix}" alt="poto" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">
+                                    <span style="position:absolute; bottom:0; right:0; width:12px; height:12px; border-radius:50%; background:${statusColor}; border:2px solid white; display:inline-block;"></span>
+                                </div>
                         
                                 <span style="display:flex;flex-direction:column;">
-                                    <span>
-                                        ${statusBadge}👤 ${user}
+                                    <span style="font-weight:500; font-size:15px; color:#111b21;">
+                                        ${namaTampilan}
                                     </span>
                                     <span class="typing-status"
-                                          style="font-size:11px;color:#25d366;"></span>
+                                          style="font-size:12px;color:#25d366;font-weight:500;"></span>
                                 </span>
                         
                             </div>
-                        
-                            <button
-                                onclick="deleteContact('${user}')"
-                                style="
-                                    border:none;
-                                    background:none;
-                                    cursor:pointer;
-                                    font-size:16px;
-                                    color:#ff1744;
-                                    padding:5px;">
-                                🗑️
-                            </button>
                         
                             <span class="badge-notif"
                                 id="badge-${user}"
@@ -451,26 +564,27 @@
                             </span>
                         
                         </li>
-                        `;
+                    `;
                 }
             });
         });
 
+        // 🛠️ Fungsi tambahan supados menu bawaan HP/Browser henteu ngahalangan pilihan
+        function eureunkeunAksi(e) {
+            e.preventDefault();
+            return false;
+        }
+
         function restoreContact(user){
+            // Hapus tina daptar panyumputan gaib (bilih statusna nuju disumputkeun)
+            let hiddenUsers = JSON.parse(localStorage.getItem('hidden_users')) || [];
+            hiddenUsers = hiddenUsers.filter(u => u !== user);
+            localStorage.setItem('hidden_users', JSON.stringify(hiddenUsers));
 
-            let hiddenUsers =
-                JSON.parse(localStorage.getItem('hidden_users')) || [];
+            // 🔥 TAMBAHAN UTAMA: Hapus tanda hapus chat supados tiasa mucunghul deui di sidebar
+            localStorage.removeItem(`deleted_chat_${user}`);
 
-            hiddenUsers =
-                hiddenUsers.filter(u => u !== user);
-
-            localStorage.setItem(
-                'hidden_users',
-                JSON.stringify(hiddenUsers)
-            );
-
-            // JANGAN HAPUS deleted_chat
-
+            // Trigger refresh sidebar
             socket.emit('user login', myId);
         }
 
@@ -724,64 +838,61 @@
             }
         }
 
+        // 🔥 UPDATE FITUR: Tekan lami dina pesen pikeun Balas, Hapus, Teruskeun
+        // 🔥 PERBAIKAN FITUR: Mastikeun gambar ti batur tiasa diklik sareng moal blank deui
         function appendMessageToRoom(data, playSound) {
-
             let roomName = "";
-
-            if (data.target === 'Semua') {
-                roomName = "Semua";
-            } else if (data.id === myId) {
-                roomName = data.target;
-            } else if (data.target === myId) {
-                roomName = data.id;
-            }
+            if (data.target === 'Semua') { roomName = "Semua"; } 
+            else if (data.id === myId) { roomName = data.target; } 
+            else if (data.target === myId) { roomName = data.id; }
 
             if (!roomName) return;
 
-            const deletedAt =
-                localStorage.getItem(`deleted_chat_${roomName}`);
-
-            if(
-                deletedAt &&
-                data.timestamp &&
-                Number(data.timestamp) < Number(deletedAt)
-            ){
-                return;
-            }
+            const deletedAt = localStorage.getItem('deleted_chat_' + roomName);
+            if(deletedAt && data.timestamp && Number(data.timestamp) < Number(deletedAt)){ return; }
 
             checkAndCreateRoom(roomName);
-
-            const targetRoom =
-                document.getElementById(`msg-room-${roomName}`);
+            const targetRoom = document.getElementById('msg-room-' + roomName);
             
             if (targetRoom) {
                 const item = document.createElement('li');
-                item.id = `msg-${data.msgId}`;
+                item.id = 'msg-' + data.msgId;
                 
+                // Pasang oncontextmenu pikeun long press (Balas, Hapus, Teruskeun)
+                item.setAttribute('oncontextmenu', `eureunkeunAksi(event); aksiPesen(event, '${data.msgId}', '${data.id}', \`${data.message}\`);`);
+                item.style.userSelect = "none";
+                item.style.webkitUserSelect = "none";
+                item.style.cursor = "pointer";
+
+                // 🛠️ MASTIKEUN FORMAT STRUKTUR GAMBAR SANGKAN TIASA DIKLIK
                 let renderContent = '';
                 if (data.isDeleted) {
                     renderContent = `<span class="deleted-text">${data.message}</span>`;
                 } else if (data.msgType === 'image') {
-                    renderContent = `<img src="${data.message}" class="chat-img" onclick="window.open(this.src)">`;
+                    // 🔥 DI-UPDATE: Ayeuna upami diklik bakal ngajalankeun fungsi lokal, moal muka halaman anyar
+                    renderContent = `<img src="${data.message}" class="chat-img" style="max-width:200px; border-radius:8px; cursor:pointer;" onclick="bukaPreviewGambar(this.src)">`;
+
                 } else if (data.msgType === 'audio') {
                     renderContent = `<audio controls><source src="${data.message}" type="audio/webm"></audio>`;
                 } else if (data.msgType === 'file') {
-                    renderContent = `<a href="${data.message}" download="${data.fileName}" class="chat-file-link">📂 ${data.fileName}</a>`;
+                    // 🔥 Atribut download="${data.fileName}" mastikeun file langsung unduh kana HP
+                    renderContent = `<a href="${data.message}" download="${data.fileName}" class="chat-file-link" style="color:#008069; font-weight:bold; text-decoration:underline;">📂 ${data.fileName}</a>`;
                 } else {
                     renderContent = data.message;
                 }
 
                 if (data.id === myId) { 
                     item.className = 'my-message';
-                    let deleteButton = data.isDeleted ? '' : `<button class="del-btn" onclick="requestDeleteMessage('${data.msgId}')">🗑️</button>`;
                     item.innerHTML = `
                         <div class="text-content"> ${renderContent} </div>
                         <div class="msg-status status-${data.msgId}" style="font-size:11px; text-align:right; margin-top:3px; color:#667781;"> ⏳ </div>
-                        ${deleteButton}
                     `;
                 } else {
                     item.className = 'other-message';
-                    item.innerHTML = roomName === 'Semua' ? `<div class="sender-id">${data.id}</div> <div class="text-content">${renderContent}</div>` : `<div class="text-content">${renderContent}</div>`;
+                    // Mastikeun renderContent gambar ti batur asup sacara sampurna ka dieu
+                    item.innerHTML = roomName === 'Semua' 
+                        ? `<div class="sender-id">${data.id}</div> <div class="text-content">${renderContent}</div>` 
+                        : `<div class="text-content">${renderContent}</div>`;
                     
                     const isPrivateForMe = data.target === myId;
                     const isBroadcast = data.target === 'Semua';
@@ -789,12 +900,9 @@
                     
                     if (playSound && data.id !== myId && (isPrivateForMe || isBroadcast)) {
                         if (notActiveChat) {
-                            if (typeof unreadCounts[roomName] !== 'number') {
-                                unreadCounts[roomName] = 0;
-                            }
+                            if (typeof unreadCounts[roomName] !== 'number') { unreadCounts[roomName] = 0; }
                             unreadCounts[roomName] += 1;
-
-                            const badge = document.getElementById(`badge-${roomName}`);
+                            const badge = document.getElementById('badge-' + roomName);
                             if (badge) {
                                 badge.innerText = unreadCounts[roomName];
                                 badge.style.display = 'inline';
@@ -809,6 +917,51 @@
                 targetRoom.scrollTop = targetRoom.scrollHeight;
             }
         }
+
+        // 🔥 FUNGSI ANYAR: Dialog Pilihan nalika Pesen Ditekan Lami
+        // 🔥 FUNGSI ANYAR: Munculkeun Pop-up Menu Klik tanpa Tulis Angka
+        // 🔥 UPDATE FUNGSI: Menu pop-up teruskeun ayeuna otomatis muka modal kontak
+        function aksiPesen(e, msgId, senderId, txtContent) {
+            const menu = document.getElementById('custom-context-menu');
+            
+            menu.style.top = e.clientY + 'px';
+            menu.style.left = e.clientX + 'px';
+            menu.style.display = 'block';
+
+            // Pilihan 1: Balas Pesen
+            document.getElementById('menu-balas').onclick = function() {
+                input.value = `Balesan obrolan @${senderId} [ "${txtContent}" ] : `;
+                input.focus();
+                menu.style.display = 'none';
+            };
+
+            // Pilihan 2: Hapus Pesen
+            document.getElementById('menu-hapus').onclick = function() {
+                if (senderId === myId) {
+                    requestDeleteMessage(msgId);
+                } else {
+                    alert("Hapunten Kang, Akang teu kenging mupus pesen milik batur.");
+                }
+                menu.style.display = 'none';
+            };
+
+            // Pilihan 3: Teruskeun Pesen (Muka Modal Kontak)
+            document.getElementById('menu-terus').onclick = function() {
+                teksDiteruskeun = txtContent; // Simpen teksna samentawis
+                menu.style.display = 'none';
+                
+                // Buka modal khusus panyandak kontak teruskeun
+                bukaModalTeruskeun(); 
+            };
+        }
+
+        // 🛠️ Deteksi upami pangguna klik di luar menu pop-up, otomatis nutup sorangan
+        document.addEventListener('click', function(e) {
+            const menu = document.getElementById('custom-context-menu');
+            if (e.target.closest('#custom-context-menu') === null) {
+                menu.style.display = 'none';
+            }
+        });
     </script>
 
     <script>
@@ -834,44 +987,35 @@
     let deferredPrompt;
     
     window.addEventListener('beforeinstallprompt', (e) => {
-    
         e.preventDefault();
-    
         deferredPrompt = e;
     
-        // tampilkeun tombol install manual
         const installBtn = document.createElement('button');
-    
         installBtn.innerText = '📲 Install Aplikasi';
     
+        // 🔥 UPDATE CSS STYLE: Diperenahkeun supados teu ngahalangan tombol send
         installBtn.style.position = 'fixed';
-        installBtn.style.bottom = '20px';
-        installBtn.style.right = '20px';
+        installBtn.style.bottom = '80px'; // <-- Di luhurkeun supados teu numpuk sareng input chat
+        installBtn.style.left = '20px';    // <-- Dialihkeun ka kénca (caket sidebar/layar kénca)
         installBtn.style.zIndex = '9999';
-        installBtn.style.padding = '12px 18px';
+        installBtn.style.padding = '10px 16px';
         installBtn.style.border = 'none';
         installBtn.style.borderRadius = '30px';
-        installBtn.style.background = '#008069';
+        installBtn.style.background = '#00c853'; // Satia nganggo warna héjo segar
         installBtn.style.color = '#fff';
         installBtn.style.fontWeight = 'bold';
+        installBtn.style.fontSize = '13px';
+        installBtn.style.boxShadow = '0 2px 8px rgba(0,0,0,0.2)';
     
         document.body.appendChild(installBtn);
     
         installBtn.addEventListener('click', async () => {
-    
             installBtn.remove();
-    
             deferredPrompt.prompt();
-    
-            const choiceResult =
-                await deferredPrompt.userChoice;
-    
+            const choiceResult = await deferredPrompt.userChoice;
             console.log(choiceResult.outcome);
-    
             deferredPrompt = null;
-    
         });
-    
     });
     </script>
 
@@ -919,7 +1063,9 @@
         </button>
 
     </div>
+
 </div>
+
     <script>
         document.getElementById('show-all-contacts')
 .addEventListener('click', openContactsModal);
@@ -931,17 +1077,17 @@ function openContactsModal() {
 
     list.innerHTML = '';
 
-    // Saring kontak: ngan ukur nembongkeun anu TEU disumputkeun
+    // FORMAT: Ngan nembongkeun kontak anu TEU aya di hidden_users (Kontak anu dihapus biasa tetep lolos saringan)
     const visibleUsers = allUsers.filter(user => !hiddenUsers.includes(user) && user !== myId);
 
     if (visibleUsers.length === 0) {
-        list.innerHTML = `<li style="padding:15px; text-align:center; color:#8696a0;">Teu aya kontak.</li>`;
+        list.innerHTML = `<li style="padding:15px; text-align:center; color:#8696a0; font-size:14px;">Teu aya kontak.</li>`;
     }
 
     visibleUsers.forEach(user => {
         list.innerHTML += `
             <li style="padding:12px; border-bottom:1px solid #eee; cursor:pointer;"
-                onclick="selectTarget('${user}'); closeContactsModal();">
+                onclick="restoreContact('${user}'); selectTarget('${user}'); closeContactsModal();">
                 👤 ${user}
             </li>
         `;
@@ -954,6 +1100,90 @@ function closeContactsModal(){
     document.getElementById('contacts-modal')
         .style.display = 'none';
 }
+
+// 🔥 FUNGSI ANYAR: Muka modal husus teruskeun pesen
+        function bukaModalTeruskeun() {
+            const allUsers = JSON.parse(localStorage.getItem('all_chat_users')) || [];
+            const hiddenUsers = JSON.parse(localStorage.getItem('hidden_users')) || [];
+            const list = document.getElementById('all-contacts-list');
+
+            list.innerHTML = '';
+
+            // Saring kontak (ulah nembongkeun kontak nu keur disumputkeun)
+            const visibleUsers = allUsers.filter(user => !hiddenUsers.includes(user) && user !== myId);
+
+            // Tambihkeun room "Semua" di luhur salaku pilihan broadcast upami hoyong diteruskeun ka sadayana
+            list.innerHTML += `
+                <li style="padding:12px; border-bottom:1px solid #eee; cursor:pointer; font-weight:bold; color:#008069;"
+                    onclick="eksekusiTeruskeun('Semua')">
+                    📢 Sadaya Jalmi (Broadcast)
+                </li>
+            `;
+
+            if (visibleUsers.length === 0 && allUsers.length <= 1) {
+                list.innerHTML += `<li style="padding:15px; text-align:center; color:#8696a0;">Teu aya kontak lianna.</li>`;
+            }
+
+            // Tampilkan daptar kontak sanesna
+            visibleUsers.forEach(user => {
+                list.innerHTML += `
+                    <li style="padding:12px; border-bottom:1px solid #eee; cursor:pointer;"
+                        onclick="eksekusiTeruskeun('${user}')">
+                        👤 ${user}
+                    </li>
+                `;
+            });
+
+            // Ganti judul modal samentawis supados pangguna terang ieu keur fitur teruskeun
+            document.querySelector('#contacts-modal div div').innerText = "➡️ Teruskeun Pesen Ka:";
+            document.getElementById('contacts-modal').style.display = 'block';
+        }
+
+        // 🔥 FUNGSI ANYAR: Ngirim pesen sacara otomatis ka kontak nu dipilih
+        function eksekusiTeruskeun(targetKontak) {
+            if (teksDiteruskeun.trim() !== "") {
+                const data = {
+                    msgId: Date.now() + '_' + myId,
+                    id: myId,
+                    target: targetKontak,
+                    message: teksDiteruskeun,
+                    msgType: 'text'
+                };
+                
+                // Kirimkeun via socket io sacara instan
+                socket.emit('chat message', data);
+                
+                // Pindahkeun room chat pangguna ka room kontak nu anyar dikiriman
+                selectTarget(targetKontak);
+                
+                // Reset variabel sareng tutup modalna
+                teksDiteruskeun = "";
+                closeContactsModal();
+                
+                // Kembalikeun judul modal asli
+                setTimeout(() => {
+                    document.querySelector('#contacts-modal div div').innerText = "📒 Sadaya Kontak";
+                }, 300);
+            }
+        }
+
+        // 🔥 FUNGSI ANYAR: Muka gambar di tengah layar sacara internal (Anti Blank)
+        // 🔥 UPDATE FUNGSI: Masangkeun link gambar kana tombol download modal
+        function bukaPreviewGambar(srcGbr) {
+            const imgModal = document.getElementById('image-viewer-modal');
+            const imgContent = document.getElementById('modal-img-content');
+            const downloadBtn = document.getElementById('modal-download-btn');
+            
+            if (imgModal && imgContent && downloadBtn) {
+                imgContent.src = srcGbr;
+                downloadBtn.href = srcGbr; // Masangkeun sumber gambar supados tiasa di-download
+                
+                // Masihan nami file dumasar kana waktos supados unik
+                downloadBtn.download = "POTO_" + Date.now() + ".png"; 
+                
+                imgModal.style.display = 'flex';
+            }
+        }
     </script>
 </body>
 </html>
