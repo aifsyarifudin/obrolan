@@ -136,9 +136,16 @@
         </div>
 
         <div id="main-chat">
-            <div class="header">
-                <button class="back-btn" onclick="backToContacts()">⬅</button>
-                <span id="chat-target-title">📢 Sadaya Jalmi (Broadcast)</span>
+            <div class="header" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <button class="back-btn" onclick="backToContacts()">⬅</button>
+                    <span id="chat-target-title">📢 Sadaya Jalmi (Broadcast)</span>
+                </div>
+                
+                <button id="btn-hapus-room-header" onclick="hapusObrolanAktif()" 
+                        style="background: #ff1744; color: white; border: none; padding: 6px 12px; border-radius: 20px; font-size: 12px; cursor: pointer; font-weight: bold; display: none;">
+                    🗑️ Hapus Obrolan
+                </button>
             </div>
             
             <div id="chat-rooms-wrapper">
@@ -689,34 +696,74 @@
     }
 
 });
+        // FUNGSI ANYAR: Pikeun mupus obrolan room anu nuju dibuka ku pangguna
+        function hapusObrolanAktif() {
+            if (targetChat === "Semua") {
+                alert("Hapunten, obrolan Broadcast (Semua) teu kenging dihapus sadayana!");
+                return;
+            }
+        
+            const namaTampilan = localStorage.getItem('alias_' + targetChat) || targetChat;
+            
+            if (confirm("Naha leres salira hoyong mupus permanen sadaya eusi obrolan sareng " + namaTampilan + "?")) {
+                
+                // 🔥 KIRIM PARÉNTAH KA SERVER PIKEUN MUPUS TINA DATABASE
+                socket.emit('clear room history', {
+                    sender: myId,
+                    target: targetChat
+                });
+        
+                // Bersihkeun tampilan balon obrolan dina UI sacara langsung
+                const room = document.getElementById(`msg-room-${targetChat}`);
+                if (room) { room.innerHTML = ''; }
+                
+                // Reset notifikasi pesen acan kabaca
+                unreadCounts[targetChat] = 0;
+                const badge = document.getElementById(`badge-${targetChat}`);
+                if (badge) { badge.style.display = 'none'; }
+                
+                alert("Obrolan parantos hasil dihapus permanen tina database!");
+            }
+        }
 
         // 🔥 PERBAIKAN: Fungsi selectTarget dirobih tegas kanggo mupus badgenya
         function selectTarget(user) {
             targetChat = user;
             container.classList.add('in-room'); 
-
+        
             if (window.innerWidth <= 768) {
                 history.pushState({ room: user }, '');
             }
-
+        
             document.querySelectorAll('#user-list li').forEach(li => li.classList.remove('active-chat'));
             const activeLi = document.getElementById(`target-${user}`);
             if(activeLi) activeLi.classList.add('active-chat');
             
-            // 🔥 PERBAIKAN: Mariksa nami landian kanggo judul header room chat
             const namaTampilanHeader = localStorage.getItem('alias_' + user) || user;
             chatTargetTitle.innerText = user === 'Semua' ? "📢 Sadaya Jalmi (Broadcast)" : `👤 ${namaTampilanHeader}`;
             
             document.querySelectorAll('.chat-messages-holder').forEach(room => room.style.display = 'none');
             const activeRoom = document.getElementById(`msg-room-${user}`);
             if (activeRoom) activeRoom.style.display = 'flex';
-
+        
             unreadCounts[user] = 0;
             const badge = document.getElementById(`badge-${user}`);
             if (badge) {
                 badge.innerText = '0';
                 badge.style.display = 'none';
             }
+        
+            // === TAMBAHKEUN LOGIKA IEU DI DIEU ===
+            const btnHapusHeader = document.getElementById('btn-hapus-room-header');
+            if (btnHapusHeader) {
+                // Upami room nu dibuka sanes 'Semua', munculkeun tombol hapus obrolan di header
+                if (user !== 'Semua') {
+                    btnHapusHeader.style.display = 'block';
+                } else {
+                    btnHapusHeader.style.display = 'none';
+                }
+            }
+            // =====================================
             
             setTimeout(() => {
                 if(activeRoom) { activeRoom.scrollTop = activeRoom.scrollHeight; }
