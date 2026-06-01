@@ -675,22 +675,23 @@
         function selectTarget(user) {
             targetChat = user;
             container.classList.add('in-room'); 
-        
-            // 🔥 TAMBAHAN UTAMA: Supados tombol kembali HP teu ngaluarkeun aplikasi
+
             if (window.innerWidth <= 768) {
                 history.pushState({ room: user }, '');
             }
-        
+
             document.querySelectorAll('#user-list li').forEach(li => li.classList.remove('active-chat'));
             const activeLi = document.getElementById(`target-${user}`);
             if(activeLi) activeLi.classList.add('active-chat');
             
-            chatTargetTitle.innerText = user === 'Semua' ? "📢 Sadaya Jalmi (Broadcast)" : `👤 ${user}`;
+            // 🔥 PERBAIKAN: Mariksa nami landian kanggo judul header room chat
+            const namaTampilanHeader = localStorage.getItem('alias_' + user) || user;
+            chatTargetTitle.innerText = user === 'Semua' ? "📢 Sadaya Jalmi (Broadcast)" : `👤 ${namaTampilanHeader}`;
             
             document.querySelectorAll('.chat-messages-holder').forEach(room => room.style.display = 'none');
             const activeRoom = document.getElementById(`msg-room-${user}`);
             if (activeRoom) activeRoom.style.display = 'flex';
-        
+
             unreadCounts[user] = 0;
             const badge = document.getElementById(`badge-${user}`);
             if (badge) {
@@ -699,18 +700,13 @@
             }
             
             setTimeout(() => {
-                if(activeRoom) {
-                    activeRoom.scrollTop = activeRoom.scrollHeight;
-                }
+                if(activeRoom) { activeRoom.scrollTop = activeRoom.scrollHeight; }
                 input.focus();
             }, 100);
             
-            socket.emit('chat seen', {
-                reader: myId,
-                target: user
-            });
+            socket.emit('chat seen', { reader: myId, target: user });
         }
-
+        
         function backToContacts() {
             container.classList.remove('in-room');
             // Upami nuju aya di jero room, mundurkeun sajarah browserna
@@ -864,25 +860,19 @@
             if (targetRoom) {
                 const item = document.createElement('li');
                 item.id = 'msg-' + data.msgId;
-                
-                // Pasang oncontextmenu pikeun long press (Balas, Hapus, Teruskeun)
                 item.setAttribute('oncontextmenu', `eureunkeunAksi(event); aksiPesen(event, '${data.msgId}', '${data.id}', \`${data.message}\`);`);
                 item.style.userSelect = "none";
                 item.style.webkitUserSelect = "none";
                 item.style.cursor = "pointer";
 
-                // 🛠️ MASTIKEUN FORMAT STRUKTUR GAMBAR SANGKAN TIASA DIKLIK
                 let renderContent = '';
                 if (data.isDeleted) {
                     renderContent = `<span class="deleted-text">${data.message}</span>`;
                 } else if (data.msgType === 'image') {
-                    // 🔥 DI-UPDATE: Ayeuna upami diklik bakal ngajalankeun fungsi lokal, moal muka halaman anyar
                     renderContent = `<img src="${data.message}" class="chat-img" style="max-width:200px; border-radius:8px; cursor:pointer;" onclick="bukaPreviewGambar(this.src)">`;
-
                 } else if (data.msgType === 'audio') {
                     renderContent = `<audio controls><source src="${data.message}" type="audio/webm"></audio>`;
                 } else if (data.msgType === 'file') {
-                    // 🔥 Atribut download="${data.fileName}" mastikeun file langsung unduh kana HP
                     renderContent = `<a href="${data.message}" download="${data.fileName}" class="chat-file-link" style="color:#008069; font-weight:bold; text-decoration:underline;">📂 ${data.fileName}</a>`;
                 } else {
                     renderContent = data.message;
@@ -896,9 +886,12 @@
                     `;
                 } else {
                     item.className = 'other-message';
-                    // Mastikeun renderContent gambar ti batur asup sacara sampurna ka dieu
+                    
+                    // 🔥 PERBAIKAN: Mariksa nami landian panyerat pesen dina room Broadcast (Semua)
+                    const namaPengirimFix = localStorage.getItem('alias_' + data.id) || data.id;
+                    
                     item.innerHTML = roomName === 'Semua' 
-                        ? `<div class="sender-id">${data.id}</div> <div class="text-content">${renderContent}</div>` 
+                        ? `<div class="sender-id">${namaPengirimFix}</div> <div class="text-content">${renderContent}</div>` 
                         : `<div class="text-content">${renderContent}</div>`;
                     
                     const isPrivateForMe = data.target === myId;
@@ -915,9 +908,7 @@
                                 badge.style.display = 'inline';
                             }
                             playNotif(); 
-                        } else {
-                            playNotif(); 
-                        }
+                        } else { playNotif(); }
                     }
                 }
                 targetRoom.appendChild(item);
