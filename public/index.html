@@ -901,6 +901,19 @@
             }
         });
 
+        // Upami server ngabejaan yen sajarah di database tos bersih, kosongkeun layar roomna
+        socket.on('room history cleared', function(data) {
+            const room = document.getElementById(`msg-room-${data.target}`);
+            if (room) { 
+                room.innerHTML = ''; // Ngosongkeun balon chat dina layar
+            }
+            
+            // Reset notifikasi angka pesen
+            unreadCounts[data.target] = 0;
+            const badge = document.getElementById(`badge-${data.target}`);
+            if (badge) { badge.style.display = 'none'; }
+        });
+
         function requestDeleteMessage(msgId) {
             if (confirm("Naha leres hoyong mupus pesen ieu kanggo sadayana?")) {
                 socket.emit('delete message', msgId);
