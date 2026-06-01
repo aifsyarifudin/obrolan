@@ -133,6 +133,41 @@ io.on('connection', (socket) => {
 
     });
 
+    // =========================================================================
+    // FITUR ENGGAL: MUPUS SADAYA SAJARAH OBROLAN ROOM TINA DATABASE ARRAY
+    // =========================================================================
+    socket.on('clear room history', (data) => {
+        try {
+            const { sender, target } = data;
+
+            if (!sender || !target) return;
+
+            // Nyaring array chatHistory, piceun chat anu saluyu sareng room eta
+            chatHistory = chatHistory.filter(msg => {
+                // Pariksa naha pesen ieu aya di jero room obrolan duaan eta
+                const isTargetRoom = (msg.sender === sender && msg.target === target) || 
+                                     (msg.sender === target && msg.target === sender);
+                // Upami leres eta roomna, ulah diasupkeun deui (dihapus tina array)
+                return !isTargetRoom;
+            });
+
+            // LOG SERVER: Nyatet yén room ieu tos dibersihkeun
+            console.log(`[CLEAR CHAT] Sajarah obrolan antara "${sender}" jeung "${target}" parantos dihapus tina database.`);
+
+            // Kirim konfirmasi balik ka pangguna nu mupus supados UI-na bersih
+            socket.emit('room history cleared', { target: target });
+
+            // (Opsional) Upami si target nuju online, bersihkeun ogé layar HP manéhna sacara real-time
+            const targetSocketId = activeUsers[target];
+            if (targetSocketId) {
+                io.to(targetSocketId).emit('room history cleared', { target: sender });
+            }
+
+        } catch (err) {
+            console.log('ERROR CLEAR ROOM HISTORY:', err);
+        }
+    });
+
     // USER KALUAR
     socket.on('disconnect', () => {
 
