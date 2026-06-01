@@ -2,7 +2,6 @@
 <html lang="en">
 <head>
 
-    <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-636LJSQ7VC"></script>
     <script>
       window.dataLayer = window.dataLayer || [];
@@ -168,11 +167,12 @@
     </div>
 
     <div id="contact-context-menu" 
-        style="display:none; position:fixed; background:white; border-radius:8px; box-shadow:0 2px 10px rgba(0,0,0,0.2); z-index:10000; overflow:hidden; width:170px;">
+        style="display:none; position:fixed; background:white; border-radius:8px; box-shadow:0 2px 10px rgba(0,0,0,0.2); z-index:10000; overflow:hidden; width:175px;">
         <ul style="list-style:none; padding:0; margin:0;">
             <li id="menu-pasang-poto" style="padding:12px 15px; cursor:pointer; font-size:14px; font-weight:500; color:#333; transition:background 0.2s;" onmouseover="this.style.background='#f0f2f5'" onmouseout="this.style.background='transparent'">📷 Pasang Poto Profil</li>
             <li id="menu-gentos-nami" style="padding:12px 15px; cursor:pointer; font-size:14px; font-weight:500; color:#333; transition:background 0.2s;" onmouseover="this.style.background='#f0f2f5'" onmouseout="this.style.background='transparent'">✏️ Gentos Nami</li>
-            <li id="menu-hapus-kontak" style="padding:12px 15px; cursor:pointer; font-size:14px; font-weight:500; color:#ff1744; transition:background 0.2s;" onmouseover="this.style.background='#f0f2f5'" onmouseout="this.style.background='transparent'">🗑️ Hapus Kontak</li>
+            <li id="menu-hapus-obrolan-saja" style="padding:12px 15px; cursor:pointer; font-size:14px; font-weight:500; color:#ff1744; transition:background 0.2s; border-bottom:1px solid #eee;" onmouseover="this.style.background='#f0f2f5'" onmouseout="this.style.background='transparent'">🗑️ Hapus Obrolan</li>
+            <li id="menu-hapus-kontak" style="padding:12px 15px; cursor:pointer; font-size:14px; font-weight:500; color:#ff1744; transition:background 0.2s;" onmouseover="this.style.background='#f0f2f5'" onmouseout="this.style.background='transparent'">❌ Hapus Kontak</li>
             <li id="menu-sumput-kontak" style="padding:12px 15px; cursor:pointer; font-size:14px; font-weight:500; color:#333; transition:background 0.2s;" onmouseover="this.style.background='#f0f2f5'" onmouseout="this.style.background='transparent'">👁️ Sumputkeun Kontak</li>
         </ul>
     </div>
@@ -371,6 +371,25 @@
                 }
             };
 
+            // 🔥 MENU ANYAR: Hapus Obrolan Saja (Mupus pesen dina room, tapi kontakna tetep aya)
+            document.getElementById('menu-hapus-obrolan-saja').onclick = function() {
+                if (confirm("Naha leres salira hoyong mupus sadaya eusi obrolan sareng " + user + "?")) {
+                    localStorage.setItem('deleted_chat_' + user, Date.now());
+                    
+                    // Bersihkeun banyolan obrolan dina UI sacara langsung
+                    const room = document.getElementById(`msg-room-${user}`);
+                    if (room) { room.innerHTML = ''; }
+                    
+                    // Reset notifikasi pesen acan kabaca
+                    unreadCounts[user] = 0;
+                    const badge = document.getElementById(`badge-${user}`);
+                    if (badge) { badge.style.display = 'none'; }
+                    
+                    alert("Obrolan parantos hasil dibersihkeun!");
+                }
+                cMenu.style.display = 'none';
+            };
+
             document.getElementById('menu-hapus-kontak').onclick = function() {
                 let hiddenUsers = JSON.parse(localStorage.getItem('hidden_users')) || [];
                 hiddenUsers = hiddenUsers.filter(u => u !== user);
@@ -513,7 +532,7 @@
                 if(hiddenUsers.includes(user)){ return; }
 
                 const isDeleted = localStorage.getItem('deleted_chat_' + user);
-                if (isDeleted) { return; }
+                // Robah sakedik: Hapus obrolan ayeuna teu matak miceun kontak tina list sacara otomatis
                 
                 if(user !== myId) {
                     checkAndCreateRoom(user);
