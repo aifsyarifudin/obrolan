@@ -675,7 +675,12 @@
         function selectTarget(user) {
             targetChat = user;
             container.classList.add('in-room'); 
-
+        
+            // 🔥 TAMBAHAN UTAMA: Supados tombol kembali HP teu ngaluarkeun aplikasi
+            if (window.innerWidth <= 768) {
+                history.pushState({ room: user }, '');
+            }
+        
             document.querySelectorAll('#user-list li').forEach(li => li.classList.remove('active-chat'));
             const activeLi = document.getElementById(`target-${user}`);
             if(activeLi) activeLi.classList.add('active-chat');
@@ -685,8 +690,7 @@
             document.querySelectorAll('.chat-messages-holder').forEach(room => room.style.display = 'none');
             const activeRoom = document.getElementById(`msg-room-${user}`);
             if (activeRoom) activeRoom.style.display = 'flex';
-
-            // Reset total angka notif sangkan aman sacara global
+        
             unreadCounts[user] = 0;
             const badge = document.getElementById(`badge-${user}`);
             if (badge) {
@@ -698,7 +702,6 @@
                 if(activeRoom) {
                     activeRoom.scrollTop = activeRoom.scrollHeight;
                 }
-            
                 input.focus();
             }, 100);
             
@@ -709,7 +712,11 @@
         }
 
         function backToContacts() {
-            container.classList.remove('in-room'); 
+            container.classList.remove('in-room');
+            // Upami nuju aya di jero room, mundurkeun sajarah browserna
+            if (history.state && history.state.room) {
+                history.back();
+            }
         }
 
         form.addEventListener('submit', function(e) {
@@ -962,6 +969,14 @@
                 menu.style.display = 'none';
             }
         });
+
+        // 🔥 FUNGSI ANYAR: Nangkep tombol kembali bawaan HP / Browser
+        window.addEventListener('popstate', function(event) {
+            if (container.classList.contains('in-room')) {
+                // Upami pangguna nuju aya di jero room chat, balikkeun ka daptar kontak
+                container.classList.remove('in-room');
+            }
+        });
     </script>
 
     <script>
@@ -1184,6 +1199,7 @@ function closeContactsModal(){
                 imgModal.style.display = 'flex';
             }
         }
+        
     </script>
 </body>
 </html>
